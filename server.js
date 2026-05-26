@@ -23,7 +23,16 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url.split('?')[0];
-  const filePath = path.join(ROOT, urlPath === '/' ? 'index.html' : urlPath);
+
+  // 简洁 URL → 实际文件路径映射
+  let filePath;
+  if (urlPath === '/') {
+    filePath = path.join(ROOT, 'src', 'index.html');
+  } else if (urlPath === '/login.html') {
+    filePath = path.join(ROOT, 'src', 'pages', 'login.html');
+  } else {
+    filePath = path.join(ROOT, urlPath);
+  }
 
   // 安全检查：防止路径遍历
   if (!filePath.startsWith(ROOT)) {

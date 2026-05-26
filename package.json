@@ -3,8 +3,17 @@
   "version": "1.0.0",
   "description": "浏览器端轻量级视频剪辑与多媒体处理系统",
   "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.6",
     "@ffmpeg/ffmpeg": "^0.12.10",
-    "@ffmpeg/core": "^0.12.6"
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2"
+  },
+  "devDependencies": {
+    "supabase": "^2.101.0"
   }
 }

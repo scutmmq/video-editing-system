@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="supabase-url" content="https://wwqgixluxlegrttyhrgy.supabase.co">
+  <meta name="supabase-publishable-key" content="sb_publishable_iDk4GcRCwlvD2M3NF0Oi7Q_T5mtPf5H">
+  <title>登录 — 轻量视频处理</title>
+  <link rel="stylesheet" href="/src/styles/login.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-header">
+        <a class="login-brand" href="/">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
+          <span>轻量视频处理</span>
+        </a>
+        <p class="login-subtitle">登录后可使用全部功能</p>
+      </div>
+
+      <!-- 登录表单 -->
+      <div class="login-form" id="authSignedOut">
+        <div class="form-group">
+          <label for="authEmail">邮箱</label>
+          <input type="email" id="authEmail" class="form-input" placeholder="请输入邮箱地址" autocomplete="email" autofocus>
+        </div>
+        <div class="form-group">
+          <label for="authPassword">密码</label>
+          <input type="password" id="authPassword" class="form-input" placeholder="至少 6 位密码" autocomplete="current-password">
+        </div>
+        <div id="authMessage" class="login-message">请输入邮箱和密码</div>
+        <div class="login-actions">
+          <button class="btn btn-primary btn-full" id="authSignInBtn">登录</button>
+          <button class="btn btn-secondary btn-full" id="authSignUpBtn">注册新账号</button>
+        </div>
+      </div>
+
+      <!-- 已登录状态（一般不会出现在此页，但作为兜底） -->
+      <div class="login-signed-in" id="authSignedIn" style="display:none">
+        <div class="login-success-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <p class="login-signed-text">已登录：<strong id="authUserEmail"></strong></p>
+        <button class="btn btn-primary btn-full" id="gotoAppBtn">进入应用</button>
+        <button class="btn btn-ghost btn-full" id="authSignOutBtn">退出登录</button>
+      </div>
+
+      <p class="login-footer-text">
+        所有视频处理均在浏览器本地完成，文件不会上传到服务器
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/src/config/supabaseClient.js"></script>
+  <script src="/src/auth/jwtToken.js"></script>
+  <script src="/src/auth/auth.js"></script>
+  <!-- 登录页专用脚本：已登录 → 直接跳转 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 等待 Supabase 初始化完成
+      await new Promise(resolve => {
+        const check = () => {
+          const state = window.VideoEditingSupabase;
+          if (state && state.isConfigured) {
+            resolve();
+          } else if (state && state.status === 'missing-config') {
+            resolve(); // 未配置也继续，让 auth.js 显示不可用
+          } else {
+            setTimeout(check, 80);
+          }
+        };
+        check();
+      });
+
+      // 如果已登录，直接跳转到主页面
+      const state = window.VideoEditingSupabase;
+      if (state && state.client && state.client.auth) {
+        const { data } = await state.client.auth.getSession();
+        if (data && data.session) {
+          window.location.replace('/');
+        }
+      }
+
+      // 监听登录成功后跳转
+      const signInBtn = document.getElementById('authSignInBtn');
+      const signUpBtn = document.getElementById('authSignUpBtn');
+      const authMessage = document.getElementById('authMessage');
+
+      if (authMessage) {
+        const observer = new MutationObserver(() => {
+          if (authMessage.classList.contains('success')) {
+            setTimeout(() => {
+              window.location.replace('/');
+            }, 800);
+          }
+        });
+        observer.observe(authMessage, { attributes: true, attributeFilter: ['class'] });
+      }
+
+      // "进入应用"按钮
+      const gotoBtn = document.getElementById('gotoAppBtn');
+      if (gotoBtn) {
+        gotoBtn.addEventListener('click', () => {
+          window.location.replace('/');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
