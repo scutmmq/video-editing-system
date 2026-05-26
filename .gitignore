@@ -4,24 +4,31 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# env
 .env
 .env.*
 !.env.example
 
+# OS
 .DS_Store
 Thumbs.db
 Desktop.ini
 
+# IDE
 .vscode/
 .idea/
 
+# build
 dist/
 build/
 coverage/
 tmp/
 temp/
 
+# logs
 *.log
+
+# 视频/音频测试文件
 *.mp4
 *.mov
 *.avi
