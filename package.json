@@ -1,0 +1,10 @@
+{
+  "name": "video-editing-system",
+  "version": "1.0.0",
+  "description": "浏览器端轻量级视频剪辑与多媒体处理系统",
+  "private": true,
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/core": "^0.12.6"
+  }
+}

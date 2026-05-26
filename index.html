@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>轻量级视频剪辑与多媒体处理系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 页面标题 -->
+    <header class="app-header">
+      <h1>轻量级视频剪辑与多媒体处理系统</h1>
+      <p class="subtitle">上传视频，即可进行裁剪、转 GIF、提取音频、添加水印、应用滤镜和截取封面等操作</p>
+    </header>
+
+    <!-- 视频上传区域 -->
+    <section class="card upload-section" id="uploadSection">
+      <h2>上传视频</h2>
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">+</div>
+        <p>点击或拖拽视频文件到此处</p>
+        <p class="upload-hint">支持 MP4、WebM、MOV、AVI、MKV 格式</p>
+        <input type="file" id="fileInput" accept="video/*" hidden>
+      </div>
+      <div class="file-info" id="fileInfo" style="display:none">
+        <div class="info-grid">
+          <div class="info-item"><span class="info-label">文件名：</span><span id="fileName"></span></div>
+          <div class="info-item"><span class="info-label">文件大小：</span><span id="fileSize"></span></div>
+          <div class="info-item"><span class="info-label">文件格式：</span><span id="fileFormat"></span></div>
+        </div>
+        <button class="btn btn-secondary" id="reuploadBtn">重新上传</button>
+      </div>
+    </section>
+
+    <!-- 视频预览区域 -->
+    <section class="card preview-section" id="previewSection" style="display:none">
+      <h2>视频预览</h2>
+      <div class="video-container">
+        <video id="videoPlayer" controls crossorigin="anonymous"></video>
+      </div>
+      <div class="preview-controls">
+        <span>当前时间：<strong id="currentTime">00:00</strong></span>
+        <span>总时长：<strong id="totalDuration">00:00</strong></span>
+        <div class="preview-actions">
+          <button class="btn btn-sm" id="setStartBtn">设为裁剪开始</button>
+          <button class="btn btn-sm" id="setEndBtn">设为裁剪结束</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能操作区域 -->
+    <section class="card tools-section" id="toolsSection" style="display:none">
+      <h2>功能操作</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="trim">视频裁剪</button>
+        <button class="tab" data-tab="gif">GIF 转换</button>
+        <button class="tab" data-tab="audio">音频提取</button>
+        <button class="tab" data-tab="watermark">文字水印</button>
+        <button class="tab" data-tab="filter">视频滤镜</button>
+        <button class="tab" data-tab="cover">截取封面</button>
+      </div>
+
+      <!-- 视频裁剪面板 -->
+      <div class="tab-panel active" id="panel-trim">
+        <div class="form-row">
+          <div class="form-group">
+            <label>开始时间（秒）</label>
+            <input type="number" id="trimStart" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label>结束时间（秒）</label>
+            <input type="number" id="trimEnd" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="trimBtn">裁剪视频</button>
+      </div>
+
+      <!-- GIF 转换面板 -->
+      <div class="tab-panel" id="panel-gif">
+        <div class="form-row">
+          <div class="form-group">
+            <label>起始时间（秒）</label>
+            <input type="number" id="gifStart" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label>持续时长（秒）</label>
+            <input type="number" id="gifDuration" class="form-input" min="0.1" step="0.1" max="15" placeholder="3.0">
+          </div>
+          <div class="form-group">
+            <label>画面宽度（px）</label>
+            <select id="gifWidth" class="form-input">
+              <option value="320">320px</option>
+              <option value="480" selected>480px</option>
+              <option value="640">640px</option>
+              <option value="800">800px</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>帧率（fps）</label>
+            <select id="gifFps" class="form-input">
+              <option value="8">8 fps</option>
+              <option value="10" selected>10 fps</option>
+              <option value="15">15 fps</option>
+              <option value="24">24 fps</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="gifBtn">生成 GIF</button>
+      </div>
+
+      <!-- 音频提取面板 -->
+      <div class="tab-panel" id="panel-audio">
+        <div class="form-row">
+          <div class="form-group">
+            <label>输出格式</label>
+            <select id="audioFormat" class="form-input">
+              <option value="mp3" selected>MP3</option>
+              <option value="wav">WAV</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="audioBtn">提取音频</button>
+      </div>
+
+      <!-- 文字水印面板 -->
+      <div class="tab-panel" id="panel-watermark">
+        <div class="form-row">
+          <div class="form-group">
+            <label>水印文字</label>
+            <input type="text" id="wmText" class="form-input" placeholder="请输入水印文字" maxlength="50">
+          </div>
+          <div class="form-group">
+            <label>字体大小（px）</label>
+            <input type="number" id="wmFontSize" class="form-input" value="24" min="8" max="72">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>文字颜色</label>
+            <input type="color" id="wmColor" class="form-input color-input" value="#ffffff">
+          </div>
+          <div class="form-group">
+            <label>显示位置</label>
+            <select id="wmPosition" class="form-input">
+              <option value="top-left">左上角</option>
+              <option value="top-right">右上角</option>
+              <option value="bottom-left">左下角</option>
+              <option value="bottom-right" selected>右下角</option>
+              <option value="center">居中</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="watermarkBtn">添加水印</button>
+      </div>
+
+      <!-- 视频滤镜面板 -->
+      <div class="tab-panel" id="panel-filter">
+        <div class="filter-grid">
+          <label class="filter-card">
+            <input type="radio" name="filter" value="grayscale">
+            <span class="filter-preview filter-grayscale"></span>
+            <span>黑白</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="blur">
+            <span class="filter-preview filter-blur"></span>
+            <span>模糊</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="brighten">
+            <span class="filter-preview filter-brighten"></span>
+            <span>亮度增强</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="darken">
+            <span class="filter-preview filter-darken"></span>
+            <span>亮度降低</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="contrast">
+            <span class="filter-preview filter-contrast"></span>
+            <span>对比度增强</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="hflip">
+            <span class="filter-preview filter-hflip"></span>
+            <span>镜像翻转</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="vintage">
+            <span class="filter-preview filter-vintage"></span>
+            <span>复古效果</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="cool">
+            <span class="filter-preview filter-cool"></span>
+            <span>冷色调</span>
+          </label>
+          <label class="filter-card">
+            <input type="radio" name="filter" value="warm">
+            <span class="filter-preview filter-warm"></span>
+            <span>暖色调</span>
+          </label>
+        </div>
+        <div class="filter-desc" id="filterDesc">请选择一种滤镜效果</div>
+        <button class="btn btn-primary" id="filterBtn">应用滤镜</button>
+      </div>
+
+      <!-- 封面截取面板 -->
+      <div class="tab-panel" id="panel-cover">
+        <div class="form-row">
+          <div class="form-group">
+            <label>截图时间点（秒）</label>
+            <input type="number" id="coverTime" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="coverBtn">截取封面</button>
+      </div>
+    </section>
+
+    <!-- 状态提示 -->
+    <div class="status-bar" id="statusBar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">请先上传视频文件</span>
+    </div>
+
+    <!-- 处理进度 -->
+    <div class="progress-container" id="progressContainer" style="display:none">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <p class="progress-text" id="progressText">正在处理...</p>
+    </div>
+
+    <!-- 结果预览与下载区域 -->
+    <section class="card result-section" id="resultSection" style="display:none">
+      <h2>处理结果</h2>
+      <div class="result-preview" id="resultPreview"></div>
+      <button class="btn btn-success" id="downloadBtn" style="display:none">下载结果</button>
+    </section>
+  </div>
+
+  <!-- FFmpeg.wasm 从本地 node_modules 加载 -->
+  <script src="/node_modules/@ffmpeg/ffmpeg/dist/umd/ffmpeg.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/ffmpeg.js"></script>
+  <script src="js/status.js"></script>
+  <script src="js/upload.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/trim.js"></script>
+  <script src="js/gif.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/watermark.js"></script>
+  <script src="js/filter.js"></script>
+  <script src="js/cover.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
