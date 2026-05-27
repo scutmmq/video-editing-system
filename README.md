@@ -58,6 +58,64 @@ PowerShell 受执行策略限制时使用：
 npm.cmd test
 ```
 
+## 打包发布
+
+本项目可以打包为 Linux x64 可执行文件，再上传到云服务器构建 Docker 镜像运行。云服务器地址和目录如下：
+
+```text
+root@119.23.76.234:/root/DockerFile/video-editing-system
+```
+
+服务器登录密码请向管理员获取。
+
+### 本地打包
+
+在项目根目录执行：
+
+```bash
+npm install
+npm run build:exe:linux
+```
+
+打包完成后会生成：
+
+```text
+dist/video-editing-system-linux
+```
+
+### 首次上传部署文件
+
+首次部署需要上传可执行文件、`Dockerfile` 和 `run.sh`：
+
+```bash
+scp .\dist\video-editing-system-linux .\Dockerfile .\run.sh root@119.23.76.234:/root/DockerFile/video-editing-system/
+```
+
+### 后续更新可执行文件
+
+如果 `Dockerfile` 和 `run.sh` 没有变化，后续只需要重新打包并上传可执行文件：
+
+```bash
+npm run build:exe:linux
+scp .\dist\video-editing-system-linux root@119.23.76.234:/root/DockerFile/video-editing-system
+```
+
+### 服务器构建并运行镜像
+
+登录云服务器后执行：
+
+```bash
+cd /root/DockerFile/video-editing-system
+chmod +x run.sh video-editing-system-linux
+./run.sh
+```
+
+默认访问地址：
+
+```text
+http://119.23.76.234:3000
+```
+
 ## 项目结构
 
 ```text

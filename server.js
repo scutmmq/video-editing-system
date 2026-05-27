@@ -2,7 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3000;
+const PORT = Number.parseInt(process.env.PORT || '3000', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = __dirname;
 
 const MIME_TYPES = {
@@ -64,7 +65,7 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`服务器已启动：http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`服务器已启动：http://${HOST}:${PORT}`);
   console.log('FFmpeg.wasm 从本地 node_modules 加载');
 });
