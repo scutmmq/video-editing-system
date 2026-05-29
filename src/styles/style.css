@@ -658,7 +658,8 @@ select.form-input {
   .sidebar-item-desc { display: none; }
 
   .main-content {
-    padding: var(--space-4);
+    /* 顶部不留 padding：与桌面端一致，避免 view-tabs 吸顶时出现夹缝 */
+    padding: 0 var(--space-4) var(--space-4);
     flex: 1;
     overflow-y: auto;
   }
