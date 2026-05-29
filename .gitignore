@@ -20,6 +20,11 @@ Desktop.ini
 .vscode/
 .idea/
 
+# AI 工具本地配置 / Python 字节码缓存
+.qwen/
+__pycache__/
+*.pyc
+
 # build
 dist/
 build/

@@ -728,6 +728,17 @@ select.form-input {
   z-index: 10;
 }
 
+/* 吸顶时用背景色铺满上方那条容器内边距，防止滚动内容从缝隙透上来 */
+.view-tabs::before {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-6));
+  right: calc(-1 * var(--space-6));
+  height: var(--space-6);
+  background: var(--bg);
+}
+
 .view-tab {
   display: flex;
   align-items: center;
