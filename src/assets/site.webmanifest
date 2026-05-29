@@ -1,0 +1,19 @@
+{
+  "name": "轻量视频处理",
+  "short_name": "视频处理",
+  "icons": [
+    {
+      "src": "/src/assets/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/src/assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0EA5E9",
+  "background_color": "#0F172A",
+  "display": "standalone"
+}

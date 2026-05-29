@@ -172,7 +172,10 @@ const WatermarkModule = {
       }
 
       const blob = new Blob([outputData], { type: 'video/mp4' });
-      App.showResult(blob, 'video', 'watermark-video.mp4');
+      App.showResult(blob, 'video', 'watermark-video.mp4', {
+        operation: 'watermark',
+        params: { text: text.trim(), fontSize: fontSize, color: color, position: position }
+      });
       Status.handleSuccess('水印添加完成');
     } catch (err) {
       Status.handleError(err, '水印添加失败，请重试');

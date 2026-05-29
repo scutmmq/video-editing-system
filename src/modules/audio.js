@@ -43,7 +43,7 @@ const AudioModule = {
       const mimeType = format === 'mp3' ? 'audio/mpeg' : 'audio/wav';
       const blob = new Blob([outputData], { type: mimeType });
 
-      App.showResult(blob, 'audio', 'audio.' + format);
+      App.showResult(blob, 'audio', 'audio.' + format, { operation: 'extract_audio', params: { format: format } });
       Status.handleSuccess('音频提取完成');
     } catch (err) {
       Status.handleError(err, '音频提取失败，请重试');

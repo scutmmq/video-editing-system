@@ -65,11 +65,46 @@
         <span class="sidebar-item-label">截取封面</span>
         <span class="sidebar-item-desc">导出帧图</span>
       </button>
+      <button class="sidebar-item tab" data-tab="transform">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        <span class="sidebar-item-label">画面变换</span>
+        <span class="sidebar-item-desc">旋转 / 缩放</span>
+      </button>
+      <button class="sidebar-item tab" data-tab="transcode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="sidebar-item-label">压缩转码</span>
+        <span class="sidebar-item-desc">格式 / 分辨率</span>
+      </button>
+      <button class="sidebar-item tab" data-tab="speed">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="sidebar-item-label">播放速度</span>
+        <span class="sidebar-item-desc">变速 / 倒放</span>
+      </button>
+      <button class="sidebar-item tab" data-tab="audioadj">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        <span class="sidebar-item-label">音频调整</span>
+        <span class="sidebar-item-desc">音量 / 淡变</span>
+      </button>
     </nav>
   </aside>
 
   <!-- ===== 右侧主内容区 ===== -->
   <main class="main-content" id="mainContent">
+
+    <!-- 视图切换 Tab -->
+    <nav class="view-tabs" id="viewTabs">
+      <button class="view-tab active" data-view="process">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <span>视频处理</span>
+      </button>
+      <button class="view-tab" data-view="history">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>处理历史</span>
+      </button>
+    </nav>
+
+    <!-- 视频处理视图 -->
+    <div class="view-panel active" id="viewProcess">
 
     <!-- 上传区（紧凑横幅） -->
     <section class="upload-banner" id="uploadSection">
@@ -240,6 +275,122 @@
         <p class="tab-panel-hint">切换到该功能时，会自动填入当前播放位置。</p>
         <button class="btn btn-primary btn-full" id="coverBtn">截取封面</button>
       </div>
+
+      <div class="tab-panel" id="panel-transform">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tfRotate">旋转</label>
+            <select id="tfRotate" class="form-input">
+              <option value="0" selected>不旋转</option>
+              <option value="90">顺时针 90°</option>
+              <option value="180">180°</option>
+              <option value="270">逆时针 90°</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tfScale">缩放</label>
+            <select id="tfScale" class="form-input">
+              <option value="none" selected>保持原始</option>
+              <option value="75">75%</option>
+              <option value="50">50%</option>
+              <option value="720">高度 720p</option>
+              <option value="480">高度 480p</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tfFit">横竖屏适配</label>
+            <select id="tfFit" class="form-input">
+              <option value="none" selected>不变</option>
+              <option value="16:9">适配横屏 16:9</option>
+              <option value="9:16">适配竖屏 9:16</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="tfHflip" style="width:auto;"> 水平翻转</label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="tfVflip" style="width:auto;"> 垂直翻转</label>
+          </div>
+        </div>
+        <p class="tab-panel-hint">可组合旋转、翻转、缩放与横竖屏适配，至少选择一项。</p>
+        <button class="btn btn-primary btn-full" id="transformBtn">应用画面变换</button>
+      </div>
+
+      <div class="tab-panel" id="panel-transcode">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tcFormat">输出格式</label>
+            <select id="tcFormat" class="form-input">
+              <option value="mp4" selected>MP4（H.264，兼容性好）</option>
+              <option value="webm">WebM（VP9，体积更小）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tcResolution">分辨率</label>
+            <select id="tcResolution" class="form-input">
+              <option value="keep" selected>保持原始</option>
+              <option value="1080">1080p</option>
+              <option value="720">720p</option>
+              <option value="480">480p</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tcQuality">质量等级</label>
+            <select id="tcQuality" class="form-input">
+              <option value="high">高质量（体积大）</option>
+              <option value="medium" selected>中等（推荐）</option>
+              <option value="low">高压缩（体积小）</option>
+            </select>
+          </div>
+        </div>
+        <p class="tab-panel-hint">转码会重新编码整段视频，文件较大时耗时较长且占用较多内存，建议先压缩到较低分辨率。</p>
+        <button class="btn btn-primary btn-full" id="transcodeBtn">开始压缩 / 转码</button>
+      </div>
+
+      <div class="tab-panel" id="panel-speed">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="spSpeed">播放速度</label>
+            <select id="spSpeed" class="form-input">
+              <option value="0.5">0.5x（慢放）</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2" selected>2x（快放）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="spReverse" style="width:auto;"> 倒放（忽略倍速）</label>
+          </div>
+        </div>
+        <p class="tab-panel-hint">倒放需要缓冲全部帧，仅支持 30 秒以内的短视频，超出请先裁剪。</p>
+        <button class="btn btn-primary btn-full" id="speedBtn">应用速度</button>
+      </div>
+
+      <div class="tab-panel" id="panel-audioadj">
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="aaMute" style="width:auto;"> 静音（移除音轨）</label>
+          </div>
+          <div class="form-group">
+            <label for="aaVolume">音量调整（dB，-20 ~ +20）</label>
+            <input type="number" id="aaVolume" class="form-input" value="0" min="-20" max="20" step="1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="aaFadeIn">淡入时长（秒）</label>
+            <input type="number" id="aaFadeIn" class="form-input" value="0" min="0" step="0.5">
+          </div>
+          <div class="form-group">
+            <label for="aaFadeOut">淡出时长（秒）</label>
+            <input type="number" id="aaFadeOut" class="form-input" value="0" min="0" step="0.5">
+          </div>
+        </div>
+        <p class="tab-panel-hint">勾选静音后将忽略音量与淡入淡出设置，直接移除音轨。</p>
+        <button class="btn btn-primary btn-full" id="audioAdjustBtn">应用音频调整</button>
+      </div>
     </section>
 
     <!-- 状态栏 -->
@@ -271,14 +422,28 @@
     <footer class="footer">
       <div class="footer-inner">
         <div class="footer-info">
-          <p>所有视频处理均在浏览器本地完成，文件不会上传到任何服务器。</p>
-          <p>建议使用 Chrome 或 Edge 最新版本以获取最佳体验。</p>
+          <p>视频处理均在浏览器本地完成，原始文件不会上传到任何服务器。</p>
+          <p>登录后处理结果将自动同步至云端，支持随时预览和下载。</p>
         </div>
         <div class="footer-tech">
           <span>HTML / CSS / JavaScript / FFmpeg.wasm / Supabase</span>
         </div>
       </div>
     </footer>
+
+    </div><!-- /viewProcess -->
+
+    <!-- 处理历史视图（独立全页） -->
+    <div class="view-panel" id="viewHistory">
+      <div class="history-fullpage" id="historyFullPage">
+        <div class="history-empty-state" id="historyEmptyState">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <h3>还没有处理记录</h3>
+          <p>登录后处理视频，结果会自动保存到这里，可随时预览或下载。</p>
+        </div>
+        <div class="history-grid" id="historyList"></div>
+      </div>
+    </div><!-- /viewHistory -->
 
   </main>
 </div>

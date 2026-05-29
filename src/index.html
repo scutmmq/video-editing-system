@@ -6,13 +6,18 @@
   <meta name="supabase-url" content="https://wwqgixluxlegrttyhrgy.supabase.co">
   <meta name="supabase-publishable-key" content="sb_publishable_iDk4GcRCwlvD2M3NF0Oi7Q_T5mtPf5H">
   <title>轻量级视频剪辑与多媒体处理系统</title>
+  <link rel="icon" href="/src/assets/favicon.ico" type="image/x-icon" sizes="any">
+  <link rel="icon" href="/src/assets/icon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/src/assets/icon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="apple-touch-icon" href="/src/assets/icon-180x180.png">
+  <link rel="manifest" href="/src/assets/site.webmanifest">
   <link rel="stylesheet" href="/src/styles/style.css">
 </head>
 <body>
   <div id="appRoot"></div>
 
   <script src="/node_modules/@ffmpeg/ffmpeg/dist/umd/ffmpeg.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/src/vendor/supabase.js"></script>
   <script src="/src/pages/mainPage.js"></script>
   <script src="/src/config/supabaseClient.js"></script>
   <script src="/src/auth/jwtToken.js"></script>
@@ -29,6 +34,17 @@
   <script src="/src/modules/watermark.js"></script>
   <script src="/src/modules/filter.js"></script>
   <script src="/src/modules/cover.js"></script>
+  <script src="/src/modules/transform.js"></script>
+  <script src="/src/modules/transcode.js"></script>
+  <script src="/src/modules/speed.js"></script>
+  <script src="/src/modules/audioAdjust.js"></script>
+  <script src="/src/services/historyMeta.js"></script>
+  <script src="/src/services/storageService.js"></script>
+  <script src="/src/services/projectService.js"></script>
+  <script src="/src/services/assetService.js"></script>
+  <script src="/src/services/jobService.js"></script>
+  <script src="/src/modules/confirmDialog.js"></script>
+  <script src="/src/modules/history.js"></script>
   <script src="/src/modules/app.js"></script>
 </body>
 </html>

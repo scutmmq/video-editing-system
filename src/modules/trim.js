@@ -63,7 +63,7 @@ const TrimModule = {
       const outputData = await ffmpegService.process(inputName, inputData, args, outputName);
       const blob = new Blob([outputData], { type: 'video/mp4' });
 
-      App.showResult(blob, 'video', 'clip-video.mp4');
+      App.showResult(blob, 'video', 'clip-video.mp4', { operation: 'trim', params: { start, end } });
       Status.handleSuccess('视频裁剪完成');
     } catch (err) {
       Status.handleError(err, '视频裁剪失败，请重试');

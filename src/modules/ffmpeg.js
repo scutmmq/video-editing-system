@@ -65,10 +65,16 @@ class FFmpegService {
   }
 
   async writeFile(name, data) {
+    if (typeof name !== 'string' || name.length === 0) {
+      throw new Error('FFmpeg writeFile: 文件名无效');
+    }
     await this.ffmpeg.writeFile(name, data instanceof Uint8Array ? data : new Uint8Array(data));
   }
 
   async readFile(name) {
+    if (typeof name !== 'string' || name.length === 0) {
+      throw new Error('FFmpeg readFile: 文件名无效');
+    }
     const data = await this.ffmpeg.readFile(name);
     if (data instanceof Uint8Array) return data;
     if (data && data.data instanceof Uint8Array) return data.data;
@@ -84,6 +90,9 @@ class FFmpegService {
   }
 
   async run(args) {
+    if (!Array.isArray(args) || !args.every(function (a) { return typeof a === 'string'; })) {
+      throw new Error('FFmpeg run: 参数必须是字符串数组');
+    }
     this._clearLogs();
     const exitCode = await this.ffmpeg.exec(args);
     if (exitCode !== 0) {

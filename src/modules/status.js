@@ -93,8 +93,30 @@ const Status = {
 
   // 统一的错误处理
   handleError(err, fallbackMsg) {
+    // 完整技术信息仅输出到控制台
     console.error('处理失败:', err);
-    const msg = (err && err.message) ? err.message : fallbackMsg;
+
+    // 提取用户可读的错误消息
+    let msg = fallbackMsg || '处理失败，请重试';
+    if (err && err.message) {
+      const techMsg = String(err.message);
+      // FFmpeg.wasm 内部错误（如 Emscripten MEMFS 异常）对用户无意义，
+      // 只保留对外暴露的友好 fallbackMsg
+      if (
+        techMsg.includes('startsWith') ||
+        techMsg.includes('Cannot read properties') ||
+        techMsg.includes('undefined') ||
+        techMsg.includes('FFmpeg 退出码')
+      ) {
+        // 已包含退出码信息的 FFmpeg 错误可以直接展示
+        if (techMsg.includes('FFmpeg 退出码')) {
+          msg = techMsg;
+        }
+      } else {
+        msg = techMsg;
+      }
+    }
+
     this.setState('error', msg);
     this.toast(msg, 'error');
   },

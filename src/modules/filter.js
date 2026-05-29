@@ -73,7 +73,7 @@ const FilterModule = {
       const outputData = await ffmpegService.process(inputName, inputData, args, outputName);
       const blob = new Blob([outputData], { type: 'video/mp4' });
 
-      App.showResult(blob, 'video', 'filter-video.mp4');
+      App.showResult(blob, 'video', 'filter-video.mp4', { operation: 'filter', params: { filter: this._selectedFilter } });
       Status.handleSuccess(filter.name + '滤镜应用完成');
     } catch (err) {
       Status.handleError(err, '滤镜处理失败，请重试');

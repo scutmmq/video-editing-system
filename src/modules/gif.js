@@ -81,7 +81,7 @@ const GifModule = {
       await ffmpegService.cleanup([inputName, paletteName, outputName]);
 
       const blob = new Blob([outputData], { type: 'image/gif' });
-      App.showResult(blob, 'gif', 'output.gif');
+      App.showResult(blob, 'gif', 'output.gif', { operation: 'gif', params: { start: start, duration: gifDur, width: width, fps: fps } });
       Status.handleSuccess('GIF 生成完成');
     } catch (err) {
       Status.handleError(err, 'GIF 生成失败，请重试');

@@ -27,6 +27,11 @@ coverage/
 tmp/
 temp/
 
+# Capacitor webDir 构建产物（由 scripts/build-webdir.js 生成）
+www/
+# Capacitor Android 平台（可由 cap add android 重建）
+android/
+
 # logs
 *.log
 

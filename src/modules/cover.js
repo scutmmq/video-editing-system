@@ -54,7 +54,7 @@ const CoverModule = {
       const outputData = await ffmpegService.process(inputName, inputData, args, outputName);
       const blob = new Blob([outputData], { type: 'image/png' });
 
-      App.showResult(blob, 'image', 'cover.png');
+      App.showResult(blob, 'image', 'cover.png', { operation: 'capture_cover', params: { time: time } });
       Status.handleSuccess('封面截取完成');
     } catch (err) {
       Status.handleError(err, '封面截取失败，请重试');

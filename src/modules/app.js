@@ -15,7 +15,13 @@ var App = {
     WatermarkModule.init();
     FilterModule.init();
     CoverModule.init();
+    TransformModule.init();
+    TranscodeModule.init();
+    SpeedModule.init();
+    AudioAdjustModule.init();
+    HistoryModule.init();
 
+    this._initViewTabs();
     this._initSidebar();
     this._initDownload();
 
@@ -45,7 +51,11 @@ var App = {
       audio: '音频提取',
       watermark: '文字水印',
       filter: '视频滤镜',
-      cover: '截取封面'
+      cover: '截取封面',
+      transform: '画面变换',
+      transcode: '压缩转码',
+      speed: '播放速度',
+      audioadj: '音频调整'
     };
     var subtitles = {
       trim: '从视频中截取一段你需要的片段，保留你想要的部分。',
@@ -53,7 +63,11 @@ var App = {
       audio: '从视频中提取音频，支持 MP3 和 WAV 两种常见格式。',
       watermark: '在视频上添加自定义文字水印，支持调整字体、颜色和位置。',
       filter: '为视频画面添加滤镜效果，选中后实时切换预览效果描述。',
-      cover: '从视频指定时间点截取一帧画面，保存为 PNG 图片作为封面。'
+      cover: '从视频指定时间点截取一帧画面，保存为 PNG 图片作为封面。',
+      transform: '旋转、翻转、缩放画面，或适配横屏 / 竖屏比例。',
+      transcode: '转换输出格式与分辨率，并按质量等级压缩视频体积。',
+      speed: '加速或减速播放，也可将短视频整段倒放。',
+      audioadj: '静音、调整音量，或为音频添加淡入淡出效果。'
     };
 
     tabs.forEach(function (tab) {
@@ -76,6 +90,38 @@ var App = {
     });
   },
 
+  _initViewTabs: function () {
+    var viewTabs = document.querySelectorAll('.view-tab');
+    var viewPanels = document.querySelectorAll('.view-panel');
+
+    viewTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var viewName = tab.dataset.view;
+        if (!viewName) return;
+
+        // 切换 tab 激活状态
+        viewTabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+
+        // 切换视图面板
+        viewPanels.forEach(function (p) { p.classList.remove('active'); });
+        var panel = document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
+        if (panel) panel.classList.add('active');
+
+        // 切换到历史视图时自动刷新
+        if (viewName === 'history' && HistoryModule._enabled) {
+          HistoryModule._refresh();
+        }
+      });
+    });
+  },
+
+  /** 编程式切换到指定视图 */
+  switchView: function (viewName) {
+    var tab = document.querySelector('.view-tab[data-view="' + viewName + '"]');
+    if (tab) tab.click();
+  },
+
   _initDownload: function () {
     var self = this;
     document.getElementById('downloadBtn').addEventListener('click', function () {
@@ -85,7 +131,7 @@ var App = {
     });
   },
 
-  showResult: function (blob, type, filename) {
+  showResult: function (blob, type, filename, meta) {
     this._currentResult = blob;
     this._resultType = type;
     this._downloadFilename = filename;
@@ -114,6 +160,11 @@ var App = {
 
     downloadBtn.style.display = '';
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // 通知历史模块持久化（meta 含 operation / params；无 meta 时历史模块会忽略）
+    document.dispatchEvent(new CustomEvent('result-ready', {
+      detail: { blob: blob, type: type, filename: filename, meta: meta || null }
+    }));
   },
 
   clearResult: function () {

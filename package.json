@@ -7,7 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
-    "build:exe:linux": "pkg . --targets node20-linux-x64 --output dist/video-editing-system-linux"
+    "build:exe:linux": "npx pkg . --targets node20-linux-x64 --output dist/video-editing-system-linux --no-bytecode --public --public-packages \"*\"",
+    "build:exe:win": "npx pkg . --targets node20-win-x64 --output dist/video-editing-system-win.exe",
+    "build:webdir": "node scripts/build-webdir.js",
+    "cap:sync": "node scripts/build-webdir.js && npx cap sync android",
+    "build:apk": "node scripts/build-webdir.js && npx cap sync android && cd android && gradlew.bat assembleDebug"
   },
   "pkg": {
     "assets": [
@@ -17,8 +21,11 @@
     ]
   },
   "dependencies": {
-    "@ffmpeg/core": "^0.12.6",
-    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@ffmpeg/core": "0.12.10",
+    "@ffmpeg/ffmpeg": "0.12.15",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2"
   },

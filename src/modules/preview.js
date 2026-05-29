@@ -5,14 +5,12 @@ const Preview = {
   _currentTimeEl: null,
   _totalDurationEl: null,
   _previewSection: null,
-  _toolsSection: null,
 
   init() {
     this._video = document.getElementById('videoPlayer');
     this._currentTimeEl = document.getElementById('currentTime');
     this._totalDurationEl = document.getElementById('totalDuration');
     this._previewSection = document.getElementById('previewSection');
-    this._toolsSection = document.getElementById('toolsSection');
 
     // 视频上传事件
     document.addEventListener('video-uploaded', (e) => {
@@ -52,7 +50,6 @@ const Preview = {
   loadVideo(url) {
     this._video.src = url;
     this._previewSection.style.display = '';
-    this._toolsSection.style.display = '';
   },
 
   reset() {
@@ -60,7 +57,6 @@ const Preview = {
     this._currentTimeEl.textContent = '00:00';
     this._totalDurationEl.textContent = '00:00';
     this._previewSection.style.display = 'none';
-    this._toolsSection.style.display = 'none';
   },
 
   getCurrentTime() {
