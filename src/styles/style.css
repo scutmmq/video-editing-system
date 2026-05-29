@@ -237,7 +237,9 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-6);
+  /* 顶部不留 padding：留白改由 .view-tabs 的 margin-top 提供，
+     使吸顶时药丸条能紧贴 navbar，消除夹缝 */
+  padding: 0 var(--space-6) var(--space-6);
   background: var(--bg);
 }
 
@@ -607,6 +609,18 @@ select.form-input {
     border-right: none;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    /* 为右侧渐隐遮罩定位 */
+    position: relative;
+  }
+
+  /* 右侧渐隐遮罩：暗示功能栏可向右滑动查看更多 */
+  .sidebar::after {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 36px;
+    pointer-events: none;
+    background: linear-gradient(to right, rgba(255,255,255,0), var(--surface));
   }
 
   .sidebar-header { display: none; }
@@ -624,6 +638,8 @@ select.form-input {
   .sidebar-item {
     flex-direction: column;
     flex-shrink: 0;
+    /* 覆盖桌面端的 width:100%，否则每项撑满整宽、一次只显示一个功能 */
+    width: auto;
     padding: var(--space-2) var(--space-3);
     min-width: 64px;
     text-align: center;
@@ -719,6 +735,9 @@ select.form-input {
   display: flex;
   gap: var(--space-1);
   padding: var(--space-1);
+  /* 静止时上方留白（容器已去掉顶部 padding，由此 margin 提供）；
+     吸顶时此 margin 被滚走，药丸条紧贴 navbar，不再出现夹缝 */
+  margin-top: var(--space-6);
   margin-bottom: var(--section-gap);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -726,17 +745,6 @@ select.form-input {
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-/* 吸顶时用背景色铺满上方那条容器内边距，防止滚动内容从缝隙透上来 */
-.view-tabs::before {
-  content: "";
-  position: absolute;
-  top: calc(-1 * var(--space-6));
-  left: calc(-1 * var(--space-6));
-  right: calc(-1 * var(--space-6));
-  height: var(--space-6);
-  background: var(--bg);
 }
 
 .view-tab {
