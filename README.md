@@ -2,6 +2,12 @@
 
 浏览器端视频处理工具，基于原生 HTML/CSS/JavaScript + FFmpeg.wasm + Supabase。所有视频处理在本地浏览器完成，支持用户登录与云端历史同步。
 
+## 下载
+
+- **Android 安装包（APK）**：[前往 Releases 下载](https://github.com/scutmmq/video-editing-system/releases/latest)
+- 最新版本：[v1.1.0](https://github.com/scutmmq/video-editing-system/releases/tag/v1.1.0)
+- 安装：下载 APK 后在手机上点击安装；若提示「未知来源」，在系统设置中允许即可
+
 ## 功能
 
 | 模块 | 说明 |
