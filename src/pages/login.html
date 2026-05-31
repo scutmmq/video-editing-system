@@ -33,7 +33,9 @@
         <div class="login-actions">
           <button class="btn btn-primary btn-full" id="authSignInBtn">登录</button>
           <button class="btn btn-secondary btn-full" id="authSignUpBtn">注册新账号</button>
+          <button class="btn btn-ghost btn-full" id="guestBtn">先以游客身份体验</button>
         </div>
+        <p class="login-hint-text">游客可使用全部本地处理功能；登录后才能保存历史与云端同步。</p>
       </div>
 
       <!-- 已登录状态（一般不会出现在此页，但作为兜底） -->
@@ -103,6 +105,15 @@
       const gotoBtn = document.getElementById('gotoAppBtn');
       if (gotoBtn) {
         gotoBtn.addEventListener('click', () => {
+          window.location.replace('/');
+        });
+      }
+
+      // "游客身份体验"按钮：设标记并进入主应用
+      const guestBtn = document.getElementById('guestBtn');
+      if (guestBtn) {
+        guestBtn.addEventListener('click', () => {
+          try { localStorage.setItem('guestMode', '1'); } catch (e) { /* ignore */ }
           window.location.replace('/');
         });
       }

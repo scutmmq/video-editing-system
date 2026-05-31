@@ -89,17 +89,35 @@ class FFmpegService {
     }
   }
 
-  async run(args) {
+  async run(args, timeout = -1) {
     if (!Array.isArray(args) || !args.every(function (a) { return typeof a === 'string'; })) {
       throw new Error('FFmpeg run: 参数必须是字符串数组');
     }
+    if (!this.ffmpeg) {
+      throw new Error('called FFmpeg.terminate()');
+    }
     this._clearLogs();
-    const exitCode = await this.ffmpeg.exec(args);
+    // timeout：毫秒，-1 不限时。超时由 FFmpeg 核心中止，避免坏文件永久卡死
+    const exitCode = await this.ffmpeg.exec(args, timeout);
     if (exitCode !== 0) {
       const lastLogs = this._logs.slice(-10).join('; ');
       throw new Error(`FFmpeg 退出码 ${exitCode}: ${lastLogs || '未知错误'}`);
     }
     return exitCode;
+  }
+
+  /**
+   * 取消当前处理：终止 worker 并重置状态，下次 process() 会自动重新加载。
+   * 进行中的 exec/run 会因 worker 被终止而 reject（错误信息含 "terminate"）。
+   */
+  cancel() {
+    if (this.ffmpeg) {
+      try { this.ffmpeg.terminate(); } catch { /* ignore */ }
+    }
+    this.ffmpeg = null;
+    this.loaded = false;
+    this.loading = false;
+    this.loadPromise = null;
   }
 
   async cleanup(files) {
@@ -108,10 +126,11 @@ class FFmpegService {
     }
   }
 
-  async process(inputFileName, inputData, args, outputFileName) {
+  async process(inputFileName, inputData, args, outputFileName, opts) {
+    const timeout = (opts && typeof opts.timeout === 'number') ? opts.timeout : -1;
     await this.load();
     await this.writeFile(inputFileName, inputData);
-    await this.run(args);
+    await this.run(args, timeout);
     const outputData = await this.readFile(outputFileName);
     // 清理虚拟文件系统中的临时文件
     await this.cleanup([inputFileName, outputFileName]);

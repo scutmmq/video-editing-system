@@ -112,7 +112,7 @@
         <div class="upload-area-inner">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <p class="upload-text">点击或拖拽视频文件到此处</p>
-          <p class="upload-hint">MP4 / WebM / MOV / AVI / MKV，建议不超过 200MB</p>
+          <p class="upload-hint">MP4 / WebM / MOV / AVI / MKV，建议 ≤100MB（手机端更小），最大 300MB</p>
         </div>
         <input type="file" id="fileInput" accept="video/*" hidden>
       </div>
@@ -159,6 +159,17 @@
       </div>
 
       <div class="tab-panel active" id="panel-trim">
+        <div class="range-trimmer" id="rangeTrimmer" style="display:none">
+          <div class="range-track" id="rangeTrack">
+            <div class="range-selected" id="rangeSelected"></div>
+            <div class="range-handle range-handle-start" id="rangeHandleStart" title="拖动调整开始"></div>
+            <div class="range-handle range-handle-end" id="rangeHandleEnd" title="拖动调整结束"></div>
+          </div>
+          <div class="range-labels">
+            <span id="rangeStartLabel">0.0s</span>
+            <span id="rangeEndLabel">0.0s</span>
+          </div>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label for="trimStart">开始时间（秒）</label>
@@ -169,7 +180,7 @@
             <input type="number" id="trimEnd" class="form-input" min="0" step="0.1" placeholder="例如 30.0">
           </div>
         </div>
-        <p class="tab-panel-hint">也可以在预览区播放视频，使用「设为裁剪开始/结束」按钮快速填入。</p>
+        <p class="tab-panel-hint">也可以在预览区播放视频，使用「设为开始/结束」按钮快速填入。</p>
         <button class="btn btn-primary btn-full" id="trimBtn">开始裁剪</button>
       </div>
 
@@ -404,7 +415,10 @@
       <div class="progress-bar">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <p class="progress-text" id="progressText">正在处理...</p>
+      <div class="progress-row">
+        <p class="progress-text" id="progressText">正在处理...</p>
+        <button class="btn btn-sm btn-ghost" id="cancelBtn" type="button">取消</button>
+      </div>
     </div>
 
     <!-- 处理结果 -->

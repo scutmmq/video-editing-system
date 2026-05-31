@@ -56,9 +56,16 @@ const Upload = {
       return;
     }
 
-    // 文件大小提醒
-    if (Utils.isLargeFile(file, 500)) {
-      Status.toast('视频文件较大，可能导致处理时间过长', 'warning');
+    // 大文件硬拦截：超过上限直接拒绝，避免浏览器端 FFmpeg.wasm 内存溢出导致整页崩溃
+    var HARD_LIMIT_MB = 300;
+    var SOFT_LIMIT_MB = 100;
+    if (Utils.isLargeFile(file, HARD_LIMIT_MB)) {
+      Status.toast('文件超过 ' + HARD_LIMIT_MB + 'MB，浏览器端无法稳定处理（易内存溢出）。请先压缩或裁剪后再上传。', 'error');
+      Status.setState('error', '文件过大（>' + HARD_LIMIT_MB + 'MB），已拒绝');
+      return;
+    }
+    if (Utils.isLargeFile(file, SOFT_LIMIT_MB)) {
+      Status.toast('视频文件较大，处理可能较慢，手机端尤其明显', 'warning');
     }
 
     this._currentFile = file;

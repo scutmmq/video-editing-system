@@ -10,6 +10,7 @@ var App = {
     Upload.init();
     Preview.init();
     TrimModule.init();
+    TrimRange.init();
     GifModule.init();
     AudioModule.init();
     WatermarkModule.init();
@@ -24,6 +25,7 @@ var App = {
     this._initViewTabs();
     this._initSidebar();
     this._initDownload();
+    this._initCancel();
 
     // 视频重置时清理结果
     document.addEventListener('video-reset', function () {
@@ -128,6 +130,16 @@ var App = {
       if (self._currentResult) {
         self.download(self._currentResult, self._downloadFilename);
       }
+    });
+  },
+
+  _initCancel: function () {
+    var btn = document.getElementById('cancelBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      // 终止 worker：进行中的处理会 reject，由各模块 catch → Status 显示"已取消"
+      if (typeof ffmpegService !== 'undefined') ffmpegService.cancel();
+      Status.toast('正在取消…', 'info');
     });
   },
 

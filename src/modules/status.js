@@ -16,6 +16,7 @@ const Status = {
   _progressContainer: null,
   _progressFill: null,
   _progressText: null,
+  _cancelBtn: null,
 
   init() {
     this._statusBar = document.getElementById('statusBar');
@@ -24,6 +25,7 @@ const Status = {
     this._progressContainer = document.getElementById('progressContainer');
     this._progressFill = document.getElementById('progressFill');
     this._progressText = document.getElementById('progressText');
+    this._cancelBtn = document.getElementById('cancelBtn');
 
     document.addEventListener('ffmpeg-progress', (e) => {
       const percent = e.detail.percent;
@@ -93,6 +95,13 @@ const Status = {
 
   // 统一的错误处理
   handleError(err, fallbackMsg) {
+    // 用户主动取消（worker 被 terminate）—— 不是错误，给中性提示
+    if (err && /terminate/i.test(String(err.message || err))) {
+      this.setState('uploaded', '已取消，可重新处理');
+      this.toast('已取消处理', 'info');
+      return;
+    }
+
     // 完整技术信息仅输出到控制台
     console.error('处理失败:', err);
 
@@ -132,11 +141,13 @@ const Status = {
     this.setState('processing');
     this.showProgress(true);
     this.setButtonsEnabled(false);
+    if (this._cancelBtn) this._cancelBtn.style.display = '';
   },
 
   // 结束处理
   endProcessing() {
     this.showProgress(false);
     this.setButtonsEnabled(true);
+    if (this._cancelBtn) this._cancelBtn.style.display = 'none';
   }
 };

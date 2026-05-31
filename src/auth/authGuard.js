@@ -12,6 +12,11 @@
 
   const LOGIN_URL = '/login.html';
 
+  /** 是否处于游客模式（用户在登录页选择"游客继续"） */
+  function isGuestMode() {
+    try { return localStorage.getItem('guestMode') === '1'; } catch (e) { return false; }
+  }
+
   /**
    * 检查当前会话是否有效
    * @returns {Promise<boolean>}
@@ -82,11 +87,18 @@
 
     const isValid = await checkSession();
     if (!isValid) {
+      // 游客模式：允许不登录使用本地功能（历史/云存储仍需登录）
+      if (isGuestMode()) {
+        console.info('游客模式：跳过登录，仅本地功能可用');
+        return;
+      }
       console.warn('未登录或会话已过期，跳转到登录页面');
       redirectToLogin();
       return;
     }
 
+    // 登录有效 → 清除游客标记（已成为正式用户）
+    try { localStorage.removeItem('guestMode'); } catch (e) { /* ignore */ }
     console.log('认证检查通过');
   });
 
@@ -111,8 +123,8 @@
         return;
       }
 
-      // 任何情况下 session 变为 null 且当前在主页面时跳转
-      if (!session && event !== 'INITIAL_SESSION') {
+      // 任何情况下 session 变为 null 且当前在主页面时跳转（游客模式除外）
+      if (!session && event !== 'INITIAL_SESSION' && !isGuestMode()) {
         redirectToLogin();
       }
     });
