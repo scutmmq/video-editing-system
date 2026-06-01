@@ -5,7 +5,7 @@
 ## 下载
 
 - **Android 安装包（APK）**：[前往 Releases 下载](https://github.com/scutmmq/video-editing-system/releases/latest)
-- 最新版本：[v1.2.0](https://github.com/scutmmq/video-editing-system/releases/tag/v1.2.0)
+- 最新版本：[v1.3.0](https://github.com/scutmmq/video-editing-system/releases/tag/v1.3.0)
 - 安装：下载 APK 后在手机上点击安装；若提示「未知来源」，在系统设置中允许即可
 
 ## 功能

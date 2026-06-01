@@ -81,7 +81,9 @@ const Preview = {
     if (spec.mode === 'duration') {
       var start = parseFloat(document.getElementById(spec.startField).value) || 0;
       var dur = Math.max(0.1, Math.round((t - start) * 10) / 10);
-      document.getElementById(spec.field).value = dur;
+      var durEl = document.getElementById(spec.field);
+      durEl.value = dur;
+      durEl.dispatchEvent(new Event('input', { bubbles: true }));
       Status.toast('已设为结束 ' + t.toFixed(1) + 's（时长 ' + dur + 's）', 'success');
     } else {
       var el = document.getElementById(spec.field);

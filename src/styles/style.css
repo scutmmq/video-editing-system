@@ -69,6 +69,30 @@
 
   --navbar-height: 56px;
   --sidebar-width: 220px;
+
+  --navbar-bg: rgba(255, 255, 255, 0.92);
+}
+
+/* ===== 暗色模式 ===== */
+[data-theme="dark"] {
+  --primary-light: #1E293B;
+  --accent-light: #134E4A;
+  --success-light: #14532D;
+  --warning-light: #422006;
+  --error-light: #450A0A;
+
+  --bg: #0F172A;
+  --surface: #1E293B;
+  --surface-alt: #334155;
+  --border: #334155;
+  --border-light: #273449;
+  --border-hover: #475569;
+
+  --text: #E2E8F0;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  --navbar-bg: rgba(15, 23, 42, 0.92);
 }
 
 /* ===== 基础重置 ===== */
@@ -92,7 +116,7 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  background: rgba(255,255,255,0.92);
+  background: var(--navbar-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);

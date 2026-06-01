@@ -17,6 +17,7 @@
       <span>轻量视频处理</span>
     </a>
     <div class="navbar-auth">
+      <button class="btn btn-sm btn-ghost theme-toggle" id="themeToggle" type="button" title="切换深色 / 浅色" aria-label="切换主题">🌙</button>
       <div class="auth-status-inline" id="authSignedIn" style="display:none">
         <span id="authUserEmail" class="auth-email-display"></span>
         <button class="btn btn-sm btn-ghost" id="authSignOutBtn">退出</button>
@@ -185,6 +186,17 @@
       </div>
 
       <div class="tab-panel" id="panel-gif">
+        <div class="range-trimmer" id="gifTrimmer" style="display:none">
+          <div class="range-track" id="gifRangeTrack">
+            <div class="range-selected" id="gifRangeSelected"></div>
+            <div class="range-handle range-handle-start" id="gifHandleStart" title="拖动调整起始"></div>
+            <div class="range-handle range-handle-end" id="gifHandleEnd" title="拖动调整结束"></div>
+          </div>
+          <div class="range-labels">
+            <span id="gifStartLabel">0.0s</span>
+            <span id="gifEndLabel">0.0s</span>
+          </div>
+        </div>
         <div class="form-row">
           <div class="form-group">
             <label for="gifStart">起始时间（秒）</label>
@@ -429,6 +441,7 @@
       <div class="result-preview" id="resultPreview"></div>
       <div class="result-actions">
         <button class="btn btn-primary" id="downloadBtn" style="display:none">下载结果</button>
+        <button class="btn btn-outline" id="continueBtn" style="display:none">用此结果继续编辑</button>
       </div>
     </section>
 

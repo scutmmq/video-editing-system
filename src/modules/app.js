@@ -26,6 +26,8 @@ var App = {
     this._initSidebar();
     this._initDownload();
     this._initCancel();
+    this._initContinue();
+    this._initTheme();
 
     // 视频重置时清理结果
     document.addEventListener('video-reset', function () {
@@ -143,6 +145,39 @@ var App = {
     });
   },
 
+  _initTheme: function () {
+    var btn = document.getElementById('themeToggle');
+    function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+    function syncIcon() { if (btn) btn.textContent = isDark() ? '☀️' : '🌙'; }
+    syncIcon(); // 早应用脚本已设好 data-theme，这里只同步图标
+    if (btn) {
+      btn.addEventListener('click', function () {
+        var next = isDark() ? 'light' : 'dark';
+        if (next === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        else document.documentElement.removeAttribute('data-theme');
+        try { localStorage.setItem('theme', next); } catch (e) { /* ignore */ }
+        syncIcon();
+      });
+    }
+  },
+
+  _initContinue: function () {
+    var self = this;
+    var btn = document.getElementById('continueBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (!self._currentResult || self._resultType !== 'video') return;
+      // 把当前处理结果转成 File，作为新的输入灌回上传模块，实现链式处理
+      var name = self._downloadFilename || 'edited.mp4';
+      var file = new File([self._currentResult], name, {
+        type: self._currentResult.type || 'video/mp4'
+      });
+      self.clearResult();
+      Upload.handleFile(file);
+      Status.toast('已将结果作为新的输入，可继续处理', 'success');
+    });
+  },
+
   showResult: function (blob, type, filename, meta) {
     this._currentResult = blob;
     this._resultType = type;
@@ -171,6 +206,11 @@ var App = {
     }
 
     downloadBtn.style.display = '';
+
+    // 「用此结果继续编辑」仅对视频结果有意义（其他处理模块都接受视频输入）
+    var continueBtn = document.getElementById('continueBtn');
+    if (continueBtn) continueBtn.style.display = (type === 'video') ? '' : 'none';
+
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     // 通知历史模块持久化（meta 含 operation / params；无 meta 时历史模块会忽略）
@@ -185,10 +225,26 @@ var App = {
     this._downloadFilename = null;
     document.getElementById('resultSection').style.display = 'none';
     document.getElementById('downloadBtn').style.display = 'none';
+    var continueBtn = document.getElementById('continueBtn');
+    if (continueBtn) continueBtn.style.display = 'none';
     document.getElementById('resultPreview').innerHTML = '';
   },
 
-  download: function (blob, filename) {
+  download: async function (blob, filename) {
+    // 移动端优先用系统"分享/保存"面板（Web Share Level 2），桌面自动回退到普通下载
+    try {
+      if (navigator.canShare) {
+        var f = new File([blob], filename, { type: blob.type || 'application/octet-stream' });
+        if (navigator.canShare({ files: [f] })) {
+          await navigator.share({ files: [f], title: filename });
+          return; // 分享/保存成功
+        }
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // 用户取消分享，不再触发下载
+      // 其他错误（不支持等）→ 继续走下载兜底
+    }
+
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
