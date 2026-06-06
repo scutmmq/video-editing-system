@@ -26,6 +26,7 @@
 <body>
   <div id="appRoot"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="/node_modules/@ffmpeg/ffmpeg/dist/umd/ffmpeg.js"></script>
   <script src="/src/vendor/supabase.js"></script>
   <script src="/src/pages/mainPage.js"></script>
@@ -57,5 +58,89 @@
   <script src="/src/modules/confirmDialog.js"></script>
   <script src="/src/modules/history.js"></script>
   <script src="/src/modules/app.js"></script>
+
+  <!-- GSAP 主界面动画 -->
+  <script>
+    (function () {
+      if (typeof gsap === 'undefined') return;
+
+      var mm = gsap.matchMedia();
+
+      // 入场动画：等待布局渲染完成后执行
+      var observer = new MutationObserver(function onMutate() {
+        var navbar = document.querySelector('.navbar');
+        var sidebar = document.querySelector('.sidebar');
+        var main = document.querySelector('.main-content');
+        if (!navbar || !sidebar || !main) return;
+        observer.disconnect();
+
+        mm.add('(prefers-reduced-motion: no-preference)', function () {
+          var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+          // 导航栏下滑
+          tl.fromTo(navbar,
+            { y: -40, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5 },
+            0
+          );
+
+          // 侧边栏从左滑入
+          tl.fromTo(sidebar,
+            { x: -60, opacity: 0 },
+            { x: 0, opacity: 1, duration: 0.55 },
+            0.08
+          );
+
+          // 主内容区淡入
+          tl.fromTo(main,
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.45 },
+            0.15
+          );
+
+          // 上传区横幅微弹
+          tl.fromTo('.upload-banner',
+            { opacity: 0, scale: 0.97 },
+            { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.4)' },
+            0.3
+          );
+
+          // 状态栏淡入
+          tl.fromTo('#statusBar',
+            { opacity: 0, y: 8 },
+            { opacity: 1, y: 0, duration: 0.35 },
+            0.4
+          );
+
+          // 工具标签按钮依次出现
+          tl.fromTo('.tab',
+            { opacity: 0, x: -12 },
+            { opacity: 1, x: 0, stagger: 0.04, duration: 0.3, ease: 'power2.out' },
+            0.1
+          );
+        });
+
+        // 按钮悬浮微动（全局）
+        setupButtonHovers();
+      });
+
+      observer.observe(document.getElementById('appRoot'), { childList: true, subtree: true });
+
+      function setupButtonHovers() {
+        // 使用事件委托，避免重复绑定
+        document.addEventListener('mouseenter', function (e) {
+          var btn = e.target.closest('.btn, .tab, .view-tab');
+          if (!btn || btn.disabled || btn.classList.contains('btn-loading')) return;
+          gsap.to(btn, { y: -1, scale: 1.01, duration: 0.15, ease: 'power2.out', overwrite: 'auto' });
+        }, true);
+
+        document.addEventListener('mouseleave', function (e) {
+          var btn = e.target.closest('.btn, .tab, .view-tab');
+          if (!btn) return;
+          gsap.to(btn, { y: 0, scale: 1, duration: 0.15, ease: 'power2.out', overwrite: 'auto' });
+        }, true);
+      }
+    })();
+  </script>
 </body>
 </html>

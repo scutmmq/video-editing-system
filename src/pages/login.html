@@ -6,21 +6,49 @@
   <meta name="supabase-url" content="https://wwqgixluxlegrttyhrgy.supabase.co">
   <meta name="supabase-publishable-key" content="sb_publishable_iDk4GcRCwlvD2M3NF0Oi7Q_T5mtPf5H">
   <title>登录 — 轻量视频处理</title>
+  <link rel="icon" href="/src/assets/favicon.ico" type="image/x-icon" sizes="any">
+  <!-- 主题早应用 -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
   <link rel="stylesheet" href="/src/styles/login.css">
 </head>
 <body>
+
+  <!-- 背景装饰光球 -->
+  <div class="login-bg">
+    <div class="login-bg-orb login-bg-orb--1"></div>
+    <div class="login-bg-orb login-bg-orb--2"></div>
+    <div class="login-bg-orb login-bg-orb--3"></div>
+  </div>
+
   <div class="login-page">
-    <div class="login-card">
+    <div class="login-card login-card-animate">
+
+      <!-- 主题切换 -->
+      <button class="login-theme-toggle" id="themeToggle" title="切换暗色/亮色模式">
+        <span id="themeIcon">🌙</span>
+      </button>
+
       <div class="login-header">
-        <a class="login-brand" href="/">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
+        <a class="login-brand login-brand-animate" href="/">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/>
+          </svg>
           <span>轻量视频处理</span>
         </a>
-        <p class="login-subtitle">登录后可使用全部功能</p>
+        <p class="login-subtitle">专业的浏览器端视频编辑工具</p>
       </div>
 
       <!-- 登录表单 -->
-      <div class="login-form" id="authSignedOut">
+      <div class="login-form login-form-animate" id="authSignedOut">
         <div class="form-group">
           <label for="authEmail">邮箱</label>
           <input type="email" id="authEmail" class="form-input" placeholder="请输入邮箱地址" autocomplete="email" autofocus>
@@ -30,15 +58,15 @@
           <input type="password" id="authPassword" class="form-input" placeholder="至少 6 位密码" autocomplete="current-password">
         </div>
         <div id="authMessage" class="login-message">请输入邮箱和密码</div>
-        <div class="login-actions">
+        <div class="login-actions login-actions-animate">
           <button class="btn btn-primary btn-full" id="authSignInBtn">登录</button>
           <button class="btn btn-secondary btn-full" id="authSignUpBtn">注册新账号</button>
           <button class="btn btn-ghost btn-full" id="guestBtn">先以游客身份体验</button>
         </div>
-        <p class="login-hint-text">游客可使用全部本地处理功能；登录后才能保存历史与云端同步。</p>
+        <p class="login-hint-text">游客可使用全部本地处理功能；登录后保存历史与云端同步。</p>
       </div>
 
-      <!-- 已登录状态（一般不会出现在此页，但作为兜底） -->
+      <!-- 已登录状态 -->
       <div class="login-signed-in" id="authSignedIn" style="display:none">
         <div class="login-success-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -54,68 +82,186 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="/src/vendor/supabase.js"></script>
   <script src="/src/config/supabaseClient.js"></script>
   <script src="/src/auth/jwtToken.js"></script>
   <script src="/src/auth/auth.js"></script>
-  <!-- 登录页专用脚本：已登录 → 直接跳转 -->
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // 等待 Supabase 初始化完成
+      // ===== 主题切换 =====
+      const themeToggle = document.getElementById('themeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+      function syncThemeIcon() { if (themeIcon) themeIcon.textContent = isDark() ? '☀️' : '🌙'; }
+      syncThemeIcon();
+      if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+          const next = isDark() ? 'light' : 'dark';
+          if (next === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+          else document.documentElement.removeAttribute('data-theme');
+          try { localStorage.setItem('theme', next); } catch (e) { /* ignore */ }
+          syncThemeIcon();
+        });
+      }
+
+      // 等待 Supabase 初始化
       await new Promise(resolve => {
         const check = () => {
           const state = window.VideoEditingSupabase;
-          if (state && state.isConfigured) {
-            resolve();
-          } else if (state && state.status === 'missing-config') {
-            resolve(); // 未配置也继续，让 auth.js 显示不可用
-          } else {
-            setTimeout(check, 80);
-          }
+          if (state && (state.isConfigured || state.status === 'missing-config')) resolve();
+          else setTimeout(check, 80);
         };
         check();
       });
 
-      // 如果已登录，直接跳转到主页面
+      // 已登录 → 跳转
       const state = window.VideoEditingSupabase;
       if (state && state.client && state.client.auth) {
         const { data } = await state.client.auth.getSession();
-        if (data && data.session) {
-          window.location.replace('/');
-        }
+        if (data && data.session) window.location.replace('/');
       }
 
-      // 监听登录成功后跳转
-      const signInBtn = document.getElementById('authSignInBtn');
-      const signUpBtn = document.getElementById('authSignUpBtn');
       const authMessage = document.getElementById('authMessage');
 
+      // 登录成功 → 跳转
       if (authMessage) {
         const observer = new MutationObserver(() => {
           if (authMessage.classList.contains('success')) {
-            setTimeout(() => {
-              window.location.replace('/');
-            }, 800);
+            setTimeout(() => window.location.replace('/'), 800);
           }
         });
         observer.observe(authMessage, { attributes: true, attributeFilter: ['class'] });
       }
 
-      // "进入应用"按钮
+      // 进入应用
       const gotoBtn = document.getElementById('gotoAppBtn');
-      if (gotoBtn) {
-        gotoBtn.addEventListener('click', () => {
-          window.location.replace('/');
-        });
-      }
+      if (gotoBtn) gotoBtn.addEventListener('click', () => window.location.replace('/'));
 
-      // "游客身份体验"按钮：设标记并进入主应用
+      // 游客模式
       const guestBtn = document.getElementById('guestBtn');
       if (guestBtn) {
         guestBtn.addEventListener('click', () => {
           try { localStorage.setItem('guestMode', '1'); } catch (e) { /* ignore */ }
           window.location.replace('/');
         });
+      }
+
+      // ===== GSAP 入场动画 =====
+      if (typeof gsap !== 'undefined') {
+        const mm = gsap.matchMedia();
+
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+          const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+          // 卡片浮现
+          tl.to('.login-card-animate', { opacity: 1, y: 0, duration: 0.65 }, 0);
+
+          // Logo 放大弹入
+          tl.fromTo('.login-brand-animate',
+            { scale: 0.7, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' },
+            0.12
+          );
+
+          // 副标题
+          tl.fromTo('.login-subtitle',
+            { opacity: 0, y: 6 },
+            { opacity: 1, y: 0, duration: 0.35 },
+            0.25
+          );
+
+          // 表单字段依次浮现
+          tl.to('.login-form-animate .form-group', {
+            opacity: 1, y: 0, stagger: 0.1, duration: 0.4, ease: 'power2.out'
+          }, 0.4);
+
+          // 消息行
+          tl.to('#authMessage', { opacity: 1, duration: 0.25 }, 0.5);
+
+          // 按钮依次轻弹
+          tl.to('.login-actions-animate .btn', {
+            opacity: 1, y: 0, stagger: 0.07, duration: 0.35, ease: 'back.out(1.3)'
+          }, 0.55);
+
+          // 底部文案
+          tl.to('.login-footer-text', { opacity: 1, duration: 0.45 }, 0.7);
+
+          // 光球微入场
+          gsap.from('.login-bg-orb--1', { scale: 0, opacity: 0, duration: 1.2, ease: 'power4.out' });
+          gsap.from('.login-bg-orb--2', { scale: 0, opacity: 0, duration: 1.2, ease: 'power4.out', delay: 0.15 });
+        });
+
+        // 主题切换按钮 hover
+        if (themeToggle) {
+          themeToggle.addEventListener('mouseenter', () => {
+            gsap.to(themeToggle, { scale: 1.1, duration: 0.2, ease: 'power2.out' });
+          });
+          themeToggle.addEventListener('mouseleave', () => {
+            gsap.to(themeToggle, { scale: 1, duration: 0.2, ease: 'power2.out' });
+          });
+        }
+
+        // 消息弹跳（成功/错误时）
+        function flashMessage() {
+          const m = document.getElementById('authMessage');
+          if (!m) return;
+          const hasCls = m.classList.contains('success') || m.classList.contains('error');
+          if (hasCls) {
+            gsap.fromTo(m, { scale: 0.85 }, { scale: 1, duration: 0.35, ease: 'back.out(2)' });
+          }
+        }
+      }
+
+      // ===== Loading 动画 =====
+      function showLoading(btn) {
+        if (!btn || btn.classList.contains('btn-loading')) return;
+        btn.classList.add('btn-loading');
+      }
+
+      // 登录/注册按钮点击时显示 loading
+      ['authSignInBtn', 'authSignUpBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('pointerdown', () => {
+          requestAnimationFrame(() => showLoading(btn));
+        });
+      });
+
+      // 监听按钮 disabled → 恢复时移除 loading
+      function watchButton(btn) {
+        if (!btn) return;
+        const mo = new MutationObserver(() => {
+          if (!btn.disabled && btn.classList.contains('btn-loading')) {
+            btn.classList.remove('btn-loading');
+            if (typeof flashMessage === 'function') flashMessage();
+          }
+        });
+        mo.observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+      }
+      watchButton(document.getElementById('authSignInBtn'));
+      watchButton(document.getElementById('authSignUpBtn'));
+
+      // 消息 class 变化 → 弹跳动画
+      if (authMessage && typeof gsap !== 'undefined') {
+        const animObs = new MutationObserver(() => flashMessage());
+        animObs.observe(authMessage, { attributes: true, attributeFilter: ['class'] });
+      }
+
+      // 错误时抖动空输入框
+      if (authMessage) {
+        const shakeObs = new MutationObserver(() => {
+          if (authMessage.classList.contains('error')) {
+            ['authEmail', 'authPassword'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el && !el.value) {
+                el.classList.add('shake');
+                setTimeout(() => el.classList.remove('shake'), 500);
+              }
+            });
+          }
+        });
+        shakeObs.observe(authMessage, { attributes: true, attributeFilter: ['class'] });
       }
     });
   </script>

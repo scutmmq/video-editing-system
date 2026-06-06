@@ -234,9 +234,19 @@
     }
 
     function setLoading(isLoading) {
-      if (signInBtn) signInBtn.disabled = isLoading || !controller.isConfigured;
-      if (signUpBtn) signUpBtn.disabled = isLoading || !controller.isConfigured;
-      if (signOutBtn) signOutBtn.disabled = isLoading || !controller.isConfigured;
+      if (signInBtn) {
+        signInBtn.disabled = isLoading || !controller.isConfigured;
+        if (!isLoading) signInBtn.classList.remove('btn-loading');
+      }
+      if (signUpBtn) {
+        signUpBtn.disabled = isLoading || !controller.isConfigured;
+        if (!isLoading) signUpBtn.classList.remove('btn-loading');
+      }
+      if (signOutBtn) {
+        signOutBtn.disabled = isLoading || !controller.isConfigured;
+        if (isLoading && isMainPage) signOutBtn.classList.add('btn-loading');
+        if (!isLoading) signOutBtn.classList.remove('btn-loading');
+      }
     }
 
     function renderSession(session) {

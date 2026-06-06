@@ -56,28 +56,34 @@ const Status = {
   },
 
   toast(msg, type = 'info') {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const toast = document.createElement('div');
     toast.className = 'toast toast-' + type;
     toast.textContent = msg;
     toast.style.cssText = `
       position: fixed;
-      top: 20px;
+      top: 72px;
       right: 20px;
       padding: 12px 24px;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
-      z-index: 9999;
+      z-index: 999;
       animation: slideIn 0.3s ease;
       max-width: 360px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
 
-    const colors = {
-      info: { bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe' },
-      error: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
-      success: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-      warning: { bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
+    const colors = isDark ? {
+      info:    { bg: '#1E293B', color: '#93C5FD', border: '#334155' },
+      error:   { bg: '#1E1B1B', color: '#FCA5A5', border: '#3B2020' },
+      success: { bg: '#1B2A1F', color: '#86EFAC', border: '#1F3D26' },
+      warning: { bg: '#2A2410', color: '#FDE68A', border: '#3D3518' },
+    } : {
+      info:    { bg: '#EEF2FF', color: '#4338CA', border: '#C7D2FE' },
+      error:   { bg: '#FEF2F2', color: '#DC2626', border: '#FECACA' },
+      success: { bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0' },
+      warning: { bg: '#FFFBEB', color: '#D97706', border: '#FDE68A' },
     };
 
     const c = colors[type] || colors.info;

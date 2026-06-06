@@ -31,6 +31,13 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: 修复 Gradle / Maven 镜像（cap sync 会重置）
+echo    注入国内镜像...
+node scripts\inject-mirrors.js
+if %errorlevel% neq 0 (
+    echo [警告] 镜像注入失败，继续构建...
+)
+
 :: Gradle 构建
 echo [3/3] Gradle 构建 APK...
 cd android
