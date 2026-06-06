@@ -1,6 +1,6 @@
 {
   "name": "video-editing-system",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "浏览器端轻量级视频剪辑与多媒体处理系统",
   "private": true,
   "bin": "server.js",

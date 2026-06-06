@@ -76,6 +76,9 @@ var App = {
 
     tabs.forEach(function (tab) {
       tab.addEventListener('click', function () {
+        // 找到当前已激活的 panel
+        var prevPanel = document.querySelector('.tab-panel.active');
+
         tabs.forEach(function (t) { t.classList.remove('active'); });
         tab.classList.add('active');
 
@@ -90,6 +93,26 @@ var App = {
         var subEl = document.getElementById('panelSubtitle');
         if (titleEl) titleEl.textContent = titles[tab.dataset.tab] || '';
         if (subEl) subEl.textContent = subtitles[tab.dataset.tab] || '';
+
+        // GSAP 平滑过渡：新面板淡入 + 标题微动
+        if (panel && typeof gsap !== 'undefined') {
+          gsap.fromTo(panel,
+            { opacity: 0, y: 10 },
+            { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+          );
+          if (titleEl) {
+            gsap.fromTo(titleEl,
+              { opacity: 0, x: -6 },
+              { opacity: 1, x: 0, duration: 0.25, ease: 'power2.out' }
+            );
+          }
+          if (subEl) {
+            gsap.fromTo(subEl,
+              { opacity: 0, x: -4 },
+              { opacity: 1, x: 0, duration: 0.25, ease: 'power2.out', delay: 0.05 }
+            );
+          }
+        }
       });
     });
   },
