@@ -62,12 +62,14 @@
       if (error) throw error;
     }
 
-    async function listJobs(projectId) {
+    async function listJobs(projectId, limit) {
+      const max = (typeof limit === 'number' && limit > 0) ? limit : 100;
       const { data, error } = await client
         .from('processing_jobs')
         .select('id,operation,params,status,error_message,result_asset_id,created_at')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(max);
       if (error) throw error;
       return data || [];
     }

@@ -13,8 +13,8 @@ On Windows PowerShell, prefer `npm.cmd` / `npx.cmd` — the `.ps1` wrappers may 
 
 - Run the app: `npm run start` (serves on http://localhost:3000). Do not open HTML files directly with `file://` — FFmpeg.wasm needs the COOP/COEP headers that `server.js` sets.
 - Run all tests: `npm test` (uses Node's built-in `node --test tests/*.test.js`).
-- Run a single test file: `node --test tests/mediaUrl.test.js`.
-- Run one test by name: `node --test --test-name-pattern="isSupportedProxyUrl" tests/mediaProxy.test.js`.
+- Run a single test file: `node --test tests/transform.test.js`.
+- Run one test by name: `node --test --test-name-pattern="validate" tests/transform.test.js`.
 - Build a Linux executable: `npm run build:exe:linux` (uses `@yao-pkg/pkg`, outputs `dist/video-editing-system-linux`). Deployment via Docker on a remote server — see README.md.
 
 ## Architecture
@@ -24,7 +24,7 @@ This is a **browser-side video editor with no build step / no bundler**. All pro
 ### Module loading and dual-environment pattern
 
 - `src/index.html` loads every module with plain `<script>` tags in dependency order. There is no import system in the browser — each module attaches itself to a **global namespace** (e.g. `App`, `Upload`, `Preview`, `TrimModule`, `ffmpegService`, `Status`, `Utils`). New feature modules must be added to both `src/index.html`'s script list and wired into `App.init()` in `src/modules/app.js`.
-- Modules that need unit tests use a **UMD wrapper** — `(function (root, factory) { ... })(window||globalThis, factory)` — so they export via `module.exports` under Node and attach to `window` in the browser. See `src/auth/jwtToken.js`, `src/auth/auth.js`, `src/modules/mediaUrl.js`, `src/server/mediaProxy.js`. Tests `require()` these directly. When writing a new testable module, follow this same UMD shape rather than relying on a bundler.
+- Modules that need unit tests use a **UMD wrapper** — `(function (root, factory) { ... })(window||globalThis, factory)` — so they export via `module.exports` under Node and attach to `window` in the browser. See `src/auth/jwtToken.js`, `src/auth/auth.js`, and the `src/services/*` modules (`jobService.js`, `assetService.js`, `historyMeta.js`, …). Tests `require()` these directly. When writing a new testable module, follow this same UMD shape rather than relying on a bundler.
 - Feature modules (trim/gif/audio/watermark/filter/cover) share a consistent shape: an object with `init()` that binds DOM handlers, a `validate(...)` helper, and an async `_handle*()` that calls `ffmpegService.process(inputName, inputData, args, outputName)` then `App.showResult(blob, type, filename)`. Use `src/modules/trim.js` as the template for new processing features.
 
 ### FFmpeg.wasm
@@ -35,7 +35,7 @@ This is a **browser-side video editor with no build step / no bundler**. All pro
 ### Server
 
 - `server.js` is a dependency-free `http` static server. URL mapping: `/` → `src/index.html`, `/login.html` → `src/pages/login.html`, everything else → path under repo root, with a path-traversal guard (`filePath.startsWith(ROOT)`).
-- `src/server/mediaProxy.js` is a remote-media proxy (rewrites HLS/m3u8 playlist URLs to route segments through `/media-proxy`, forwards Range headers). **It is implemented and tested but not yet wired into `server.js`** — wiring the `handleMediaProxy` route into the server is the remaining step for the remote-URL video feature (`src/modules/mediaUrl.js` already builds `/media-proxy?url=...` links).
+- Remote-media proxying is **not implemented**; `server.js` only serves static files. A future remote-URL video feature would add a proxy route here (there is currently no `mediaProxy`/`mediaUrl` module despite earlier plans).
 
 ### Auth (Supabase)
 
@@ -51,5 +51,5 @@ This is a **browser-side video editor with no build step / no bundler**. All pro
 
 ## Notes
 
-- Tests cover the pure/testable logic (auth, jwtToken, mediaUrl, mediaProxy) — there is no headless-browser test for the FFmpeg processing modules, so verify UI/processing changes manually in the browser.
+- Tests cover the pure/testable logic (auth, jwtToken, services, and the transform/transcode/speed/audioAdjust validators) — there is no headless-browser test for the FFmpeg processing modules, so verify UI/processing changes manually in the browser.
 - README.md's "项目结构" section is slightly stale (it lists `index.html` at repo root; it actually lives at `src/index.html`, and `login.html` at `src/pages/login.html`).

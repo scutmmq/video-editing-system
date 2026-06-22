@@ -8,6 +8,7 @@ const HistoryModule = {
   _userId: null,
   _projectId: null,
   _projectFailed: false,   // 若项目创建失败（如 RLS），不再重试
+  _projectPromise: null,   // 进行中的项目获取，供并发调用复用
   _services: null,
   _listEl: null,
   _emptyStateEl: null,
@@ -89,6 +90,20 @@ const HistoryModule = {
     );
   },
 
+  // 带退避的重试（用于网络相关操作，如 Storage 上传）
+  async _retry(fn, retries) {
+    var n = (typeof retries === 'number') ? retries : 2;
+    var lastErr;
+    for (var i = 0; i <= n; i++) {
+      try { return await fn(); }
+      catch (err) {
+        lastErr = err;
+        if (i < n) await new Promise(function (r) { setTimeout(r, 500 * (i + 1)); });
+      }
+    }
+    throw lastErr;
+  },
+
   async _ensureUser() {
     if (this._userId) return this._userId;
     try {
@@ -104,15 +119,26 @@ const HistoryModule = {
   async _ensureProject() {
     if (this._projectId) return this._projectId;
     if (this._projectFailed) return null;           // 之前已失败（如 RLS），不再重试
-    const userId = await this._ensureUser();
-    if (!userId) return null;
+    // 并发复用同一请求，避免多个结果同时触发重复创建项目
+    if (!this._projectPromise) {
+      this._projectPromise = (async () => {
+        const userId = await this._ensureUser();
+        if (!userId) return null;
+        try {
+          const project = await this._services.project.getOrCreateDefaultProject(userId);
+          this._projectId = project.id;
+          return this._projectId;
+        } catch (err) {
+          this._projectFailed = true;               // 标记失败，后续调用直接短路
+          throw err;
+        }
+      })();
+    }
     try {
-      const project = await this._services.project.getOrCreateDefaultProject(userId);
-      this._projectId = project.id;
-      return this._projectId;
-    } catch (err) {
-      this._projectFailed = true;                   // 标记失败，后续调用直接短路
-      throw err;
+      return await this._projectPromise;
+    } finally {
+      // 成功已缓存 _projectId；否则清空以便后续可重试（_projectFailed 仍会短路）
+      if (!this._projectId) this._projectPromise = null;
     }
   },
 
@@ -166,7 +192,7 @@ const HistoryModule = {
     }
 
     try {
-      await this._services.storage.uploadResult(bucket, storagePath, blob, blob.type);
+      await this._retry(() => this._services.storage.uploadResult(bucket, storagePath, blob, blob.type), 2);
       await this._services.asset.insertResultAsset({
         id: assetId,
         projectId,
@@ -344,19 +370,12 @@ const HistoryModule = {
     try {
       const asset = await this._services.asset.getAssetById(assetId);
       const url = await this._services.storage.getSignedUrl(asset.bucket, asset.storage_path);
-      // 签名 URL 是跨域的，<a download> 无法强制下载，先 fetch 为 blob
+      // 签名 URL 跨域，<a download> 无法强制下载，先 fetch 为 blob 再交给统一下载逻辑
       const res = await fetch(url);
       if (!res.ok) throw new Error('下载失败：HTTP ' + res.status);
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = asset.original_filename || 'download';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(blobUrl); }, 1000);
-      if (window.Status) Status.toast('下载已开始', 'success');
+      // 复用 App.download（含移动端 Web Share + 桌面回退）
+      App.download(blob, asset.original_filename || 'download');
     } catch (err) {
       console.error('历史记录：下载失败', err);
       if (window.Status) Status.toast('下载失败，请稍后重试', 'error');
