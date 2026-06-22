@@ -184,7 +184,7 @@ const HistoryModule = {
     } catch (err) {
       console.error('历史记录：保存结果失败', err);
       try { await this._services.job.failJob(jobId, err.message); } catch (_e) {}
-      if (window.Status) Status.toast('处理历史保存失败：' + (err.message || err), 'error');
+      if (window.Status) Status.toast('处理历史保存失败，请稍后重试', 'error');
     } finally {
       await this._refresh();
     }
@@ -214,6 +214,13 @@ const HistoryModule = {
     this._render(jobs);
   },
 
+  // HTML 转义，防止 params/error_message 等用户内容注入（存储型 XSS）
+  _esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  },
+
   _render(jobs) {
     // 切换空状态 / 列表显示
     if (!jobs || jobs.length === 0) {
@@ -229,27 +236,30 @@ const HistoryModule = {
     if (this._emptyStateEl) this._emptyStateEl.style.display = 'none';
 
     const rows = jobs.map((job) => {
-      const op = this._opLabels[job.operation] || job.operation;
-      const summary = HistoryMeta.summarizeParams(job.operation, job.params);
-      const statusText = this._statusLabels[job.status] || job.status;
-      const time = job.created_at ? new Date(job.created_at).toLocaleString() : '';
+      const op = this._esc(this._opLabels[job.operation] || job.operation);
+      const summary = this._esc(HistoryMeta.summarizeParams(job.operation, job.params));
+      const statusText = this._esc(this._statusLabels[job.status] || job.status);
+      const time = job.created_at ? this._esc(new Date(job.created_at).toLocaleString()) : '';
       const canOpen = job.status === 'succeeded' && job.result_asset_id;
+      const assetId = this._esc(job.result_asset_id || '');
+      const jobId = this._esc(job.id || '');
 
-      const statusClass = 'history-status-' + job.status;
+      const statusClass = 'history-status-' + this._esc(job.status);
+      const errMsg = this._esc((job.error_message || '').substring(0, 40));
       const errorText = (job.status === 'failed' && job.error_message)
-        ? `<span class="history-error" title="${(job.error_message || '').replace(/"/g, '&quot;')}">${(job.error_message || '').substring(0, 40)}</span>`
+        ? `<span class="history-error" title="${errMsg}">${errMsg}</span>`
         : '';
 
       const actionHtml = canOpen
         ? `<div class="history-item-actions">
-            <button class="btn btn-sm btn-primary-outline" data-asset="${job.result_asset_id}">预览</button>
-            <button class="btn btn-sm btn-outline" data-download="${job.result_asset_id}">下载</button>
-            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${job.id}" data-assetid="${job.result_asset_id || ''}">
+            <button class="btn btn-sm btn-primary-outline" data-asset="${assetId}">预览</button>
+            <button class="btn btn-sm btn-outline" data-download="${assetId}">下载</button>
+            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>`
         : `<div class="history-item-actions">
-            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${job.id}" data-assetid="${job.result_asset_id || ''}">
+            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
           </div>`;
@@ -326,7 +336,7 @@ const HistoryModule = {
       window.open(url, '_blank');
     } catch (err) {
       console.error('历史记录：打开结果失败', err);
-      if (window.Status) Status.toast('无法打开该结果：' + (err.message || err), 'error');
+      if (window.Status) Status.toast('无法打开该结果，请稍后重试', 'error');
     }
   },
 
@@ -349,7 +359,7 @@ const HistoryModule = {
       if (window.Status) Status.toast('下载已开始', 'success');
     } catch (err) {
       console.error('历史记录：下载失败', err);
-      if (window.Status) Status.toast('下载失败：' + (err.message || err), 'error');
+      if (window.Status) Status.toast('下载失败，请稍后重试', 'error');
     }
   },
 
@@ -376,7 +386,7 @@ const HistoryModule = {
       await this._refresh();
     } catch (err) {
       console.error('历史记录：删除失败', err);
-      if (window.Status) Status.toast('删除失败：' + (err.message || err), 'error');
+      if (window.Status) Status.toast('删除失败，请稍后重试', 'error');
     }
   },
 };

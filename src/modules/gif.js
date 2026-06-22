@@ -48,12 +48,13 @@ const GifModule = {
 
     Status.startProcessing();
 
+    const ext = Utils.getFileExtension(file.name);
+    const inputName = 'input_gif.' + ext;
+    const paletteName = 'palette.png';
+    const outputName = 'output.gif';
+
     try {
       const inputData = await Upload.getFileData();
-      const ext = Utils.getFileExtension(file.name);
-      const inputName = 'input_gif.' + ext;
-      const paletteName = 'palette.png';
-      const outputName = 'output.gif';
 
       await ffmpegService.load();
       await ffmpegService.writeFile(inputName, inputData);
@@ -78,7 +79,6 @@ const GifModule = {
       ]);
 
       const outputData = await ffmpegService.readFile(outputName);
-      await ffmpegService.cleanup([inputName, paletteName, outputName]);
 
       const blob = new Blob([outputData], { type: 'image/gif' });
       App.showResult(blob, 'gif', 'output.gif', { operation: 'gif', params: { start: start, duration: gifDur, width: width, fps: fps } });
@@ -86,6 +86,7 @@ const GifModule = {
     } catch (err) {
       Status.handleError(err, 'GIF 生成失败，请重试');
     } finally {
+      await ffmpegService.cleanup([inputName, paletteName, outputName]);
       Status.endProcessing();
     }
   }

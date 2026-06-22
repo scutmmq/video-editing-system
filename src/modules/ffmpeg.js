@@ -129,14 +129,15 @@ class FFmpegService {
   async process(inputFileName, inputData, args, outputFileName, opts) {
     const timeout = (opts && typeof opts.timeout === 'number') ? opts.timeout : -1;
     await this.load();
-    await this.writeFile(inputFileName, inputData);
-    await this.run(args, timeout);
-    const outputData = await this.readFile(outputFileName);
-    // 清理虚拟文件系统中的临时文件
-    await this.cleanup([inputFileName, outputFileName]);
-    // 额外清理可能的中间文件（如 palette）
-    try { await this.deleteFile('palette.png'); } catch {}
-    return outputData;
+    try {
+      await this.writeFile(inputFileName, inputData);
+      await this.run(args, timeout);
+      return await this.readFile(outputFileName);
+    } finally {
+      // 无论成功/失败/取消都清理，避免临时文件在 MEMFS 累积导致内存溢出
+      await this.cleanup([inputFileName, outputFileName]);
+      try { await this.deleteFile('palette.png'); } catch {}
+    }
   }
 
   get isLoaded() {
