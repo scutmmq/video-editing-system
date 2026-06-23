@@ -64,6 +64,50 @@ const Preview = {
     });
     var initActive = document.querySelector('.tab.active');
     this._syncSeekButtons(initActive ? initActive.dataset.tab : 'trim');
+
+    this._initShortcuts();
+  },
+
+  /**
+   * 全局键盘快捷键：
+   *   空格 → 播放 / 暂停
+   *   [    → 标记当前时间为「起始点」（按当前功能映射）
+   *   ]    → 标记当前时间为「结束点」
+   * 仅在预览区可见时生效；焦点位于输入控件时不拦截，避免输入文本时误触发。
+   */
+  _initShortcuts() {
+    var self = this;
+    document.addEventListener('keydown', function (e) {
+      // 预览区未显示（没有加载视频）→ 不处理
+      if (!self._previewSection || self._previewSection.style.display === 'none') return;
+
+      // 焦点在输入框 / 文本域 / 下拉 / 可编辑元素时，交还给浏览器，避免误触发
+      var el = document.activeElement;
+      if (el) {
+        var tag = el.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) return;
+      }
+
+      // 带修饰键的组合键（如复制粘贴）不处理
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      switch (e.key) {
+        case ' ':
+        case 'Spacebar': // 兼容旧版浏览器
+          e.preventDefault(); // 阻止页面滚动，并避免与 <video> 原生空格行为重复触发
+          if (self._video.paused) self._video.play();
+          else self._video.pause();
+          break;
+        case '[':
+          e.preventDefault();
+          self._applySeek('start');
+          break;
+        case ']':
+          e.preventDefault();
+          self._applySeek('end');
+          break;
+      }
+    });
   },
 
   /** 当前激活的功能标签名 */
