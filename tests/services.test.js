@@ -101,6 +101,29 @@ test('assetService.insertResultAsset uses client-generated id and storage path',
   assert.equal(row.kind, 'trimmed_video');
 });
 
+test('assetService.listProjectAssets queries by project and returns rows', async () => {
+  const { client, calls } = createFakeSupabase({
+    responders: {
+      'media_assets.select': () => ({
+        data: [{ id: 'a1', bucket: 'media-results', storage_path: 'u1/p1/a1/clip.mp4', mime_type: 'video/mp4', kind: 'trimmed_video' }],
+        error: null,
+      }),
+    },
+  });
+  const svc = AssetService.createAssetService(client);
+  const assets = await svc.listProjectAssets('p1');
+  assert.equal(assets.length, 1);
+  assert.equal(assets[0].id, 'a1');
+});
+
+test('assetService.listProjectAssets surfaces query errors', async () => {
+  const { client } = createFakeSupabase({
+    responders: { 'media_assets.select': () => ({ data: null, error: new Error('rls denied') }) },
+  });
+  const svc = AssetService.createAssetService(client);
+  await assert.rejects(() => svc.listProjectAssets('p1'), /rls denied/);
+});
+
 test('storageService uploads and signs urls', async () => {
   const { client, calls } = createFakeSupabase();
   const svc = StorageService.createStorageService(client);

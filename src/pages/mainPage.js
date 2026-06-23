@@ -102,6 +102,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>处理历史</span>
       </button>
+      <button class="view-tab" data-view="assets">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <span>素材库</span>
+      </button>
     </nav>
 
     <!-- 视频处理视图 -->
@@ -471,6 +475,18 @@
         <div class="history-grid" id="historyList"></div>
       </div>
     </div><!-- /viewHistory -->
+
+    <!-- 素材库视图（复用已处理结果文件） -->
+    <div class="view-panel" id="viewAssets">
+      <div class="history-fullpage" id="assetLibraryPage">
+        <div class="history-empty-state" id="assetLibraryEmpty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          <h3>素材库为空</h3>
+          <p>登录后处理视频，结果会保存到这里，可一键载入工作流继续编辑。</p>
+        </div>
+        <div class="history-grid" id="assetLibraryList"></div>
+      </div>
+    </div><!-- /viewAssets -->
 
   </main>
 </div>

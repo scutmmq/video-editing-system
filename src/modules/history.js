@@ -34,6 +34,38 @@ const HistoryModule = {
     cancelled: '已取消',
   },
 
+  // 失败任务「一键重试」：操作 → 对应工具 tab、运行按钮、以及参数到表单字段的映射。
+  // 重试基于「当前已加载的源视频」用原参数重跑（失败任务本身未持久化源文件 / 结果）。
+  // type 省略表示普通取值控件（input/select），radio / checkbox 走专门处理。
+  RETRY_TARGETS: {
+    trim: { tab: 'trim', run: 'trimBtn', fields: [
+      { param: 'start', id: 'trimStart' }, { param: 'end', id: 'trimEnd' } ] },
+    gif: { tab: 'gif', run: 'gifBtn', fields: [
+      { param: 'start', id: 'gifStart' }, { param: 'duration', id: 'gifDuration' },
+      { param: 'width', id: 'gifWidth' }, { param: 'fps', id: 'gifFps' } ] },
+    extract_audio: { tab: 'audio', run: 'audioBtn', fields: [
+      { param: 'format', id: 'audioFormat' } ] },
+    watermark: { tab: 'watermark', run: 'watermarkBtn', fields: [
+      { param: 'text', id: 'wmText' }, { param: 'fontSize', id: 'wmFontSize' },
+      { param: 'color', id: 'wmColor' }, { param: 'position', id: 'wmPosition' } ] },
+    filter: { tab: 'filter', run: 'filterBtn', fields: [
+      { param: 'filter', type: 'radio', name: 'filter' } ] },
+    capture_cover: { tab: 'cover', run: 'coverBtn', fields: [
+      { param: 'time', id: 'coverTime' } ] },
+    transform: { tab: 'transform', run: 'transformBtn', fields: [
+      { param: 'rotate', id: 'tfRotate' }, { param: 'scale', id: 'tfScale' },
+      { param: 'fit', id: 'tfFit' }, { param: 'hflip', id: 'tfHflip', type: 'checkbox' },
+      { param: 'vflip', id: 'tfVflip', type: 'checkbox' } ] },
+    transcode: { tab: 'transcode', run: 'transcodeBtn', fields: [
+      { param: 'format', id: 'tcFormat' }, { param: 'resolution', id: 'tcResolution' },
+      { param: 'quality', id: 'tcQuality' } ] },
+    speed: { tab: 'speed', run: 'speedBtn', fields: [
+      { param: 'speed', id: 'spSpeed' }, { param: 'reverse', id: 'spReverse', type: 'checkbox' } ] },
+    audio_adjust: { tab: 'audioadj', run: 'audioAdjustBtn', fields: [
+      { param: 'mute', id: 'aaMute', type: 'checkbox' }, { param: 'volumeDb', id: 'aaVolume' },
+      { param: 'fadeIn', id: 'aaFadeIn' }, { param: 'fadeOut', id: 'aaFadeOut' } ] },
+  },
+
   async init() {
     this._listEl = document.getElementById('historyList');
     this._emptyStateEl = document.getElementById('historyEmptyState');
@@ -261,6 +293,10 @@ const HistoryModule = {
 
     if (this._emptyStateEl) this._emptyStateEl.style.display = 'none';
 
+    // 缓存按 id 索引的任务，供「重试」按钮读取原始参数
+    this._jobsById = {};
+    jobs.forEach((job) => { if (job && job.id) this._jobsById[job.id] = job; });
+
     const rows = jobs.map((job) => {
       const op = this._esc(this._opLabels[job.operation] || job.operation);
       const summary = this._esc(HistoryMeta.summarizeParams(job.operation, job.params));
@@ -276,18 +312,24 @@ const HistoryModule = {
         ? `<span class="history-error" title="${errMsg}">${errMsg}</span>`
         : '';
 
+      // 失败且该操作支持重试时，渲染「重试」按钮
+      const retryHtml = (job.status === 'failed' && this.RETRY_TARGETS[job.operation])
+        ? `<button class="btn btn-sm btn-primary-outline" data-retry="${jobId}">重试</button>`
+        : '';
+
+      const deleteBtnHtml = `<button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>`;
+
       const actionHtml = canOpen
         ? `<div class="history-item-actions">
             <button class="btn btn-sm btn-primary-outline" data-asset="${assetId}">预览</button>
             <button class="btn btn-sm btn-outline" data-download="${assetId}">下载</button>
-            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-            </button>
+            ${deleteBtnHtml}
           </div>`
         : `<div class="history-item-actions">
-            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-            </button>
+            ${retryHtml}
+            ${deleteBtnHtml}
           </div>`;
 
       const opIcon = this._opIcon(job.operation);
@@ -335,6 +377,69 @@ const HistoryModule = {
         e.stopPropagation();
         this._deleteJob(btn.dataset.delete, btn.dataset.assetid);
       });
+    });
+
+    // 重试按钮（失败任务）
+    this._listEl.querySelectorAll('button[data-retry]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._retryJob(btn.dataset.retry);
+      });
+    });
+  },
+
+  /** 失败任务一键重试：用原参数在当前已加载的源视频上重跑 */
+  _retryJob(jobId) {
+    const job = this._jobsById && this._jobsById[jobId];
+    if (!job) return;
+    const cfg = this.RETRY_TARGETS[job.operation];
+    if (!cfg) {
+      if (window.Status) Status.toast('该操作暂不支持一键重试', 'warning');
+      return;
+    }
+
+    // 失败任务未持久化源文件，必须有当前已加载的源视频才能重跑
+    const hasSource = typeof Upload !== 'undefined' && Upload.getFile && Upload.getFile();
+    if (window.App) App.switchView('process');
+    if (!hasSource) {
+      if (window.Status) Status.toast('请先上传原视频，再点击重试', 'warning');
+      return;
+    }
+
+    // 切到对应工具 tab（点击以激活面板并同步预览区按钮）
+    const tabBtn = document.querySelector('.tab[data-tab="' + cfg.tab + '"]');
+    if (tabBtn) tabBtn.click();
+
+    // 回填原参数到表单，再触发运行按钮
+    this._applyParams(cfg, job.params || {});
+    const runBtn = document.getElementById(cfg.run);
+    if (runBtn) runBtn.click();
+    if (window.Status) Status.toast('已用原参数重新处理', 'info');
+  },
+
+  /** 把存储的 params 回填到对应功能的表单控件 */
+  _applyParams(cfg, params) {
+    cfg.fields.forEach((f) => {
+      const val = params[f.param];
+      if (val === undefined || val === null) return;
+
+      if (f.type === 'radio') {
+        const r = document.querySelector('input[name="' + f.name + '"][value="' + String(val) + '"]');
+        if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
+        return;
+      }
+
+      const el = document.getElementById(f.id);
+      if (!el) return;
+      if (f.type === 'checkbox') {
+        el.checked = !!val;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        el.value = String(val);
+        // 派发 input + change，让可视化滑块、滤镜描述等监听者同步
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
   },
 

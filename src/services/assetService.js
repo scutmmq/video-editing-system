@@ -61,7 +61,18 @@
       if (error) throw error;
     }
 
-    return { insertResultAsset, getAssetById, deleteAsset };
+    // 列出某项目的全部素材（素材库用）；按创建时间倒序，最新在前。
+    async function listProjectAssets(projectId) {
+      const { data, error } = await client
+        .from('media_assets')
+        .select('id,bucket,storage_path,original_filename,mime_type,kind,size_bytes,created_at')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    }
+
+    return { insertResultAsset, getAssetById, deleteAsset, listProjectAssets };
   }
 
   return { createAssetService };
