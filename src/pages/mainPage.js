@@ -13,7 +13,7 @@
 <nav class="navbar" id="navbar">
   <div class="navbar-inner">
     <a class="navbar-brand" href="#">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><polygon points="10,8 16,12 10,16"/></svg>
       <span>轻量视频处理</span>
     </a>
     <div class="navbar-auth">
@@ -103,7 +103,7 @@
         <span>处理历史</span>
       </button>
       <button class="view-tab" data-view="assets">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         <span>素材库</span>
       </button>
     </nav>
@@ -115,7 +115,7 @@
     <section class="upload-banner" id="uploadSection">
       <div class="upload-area" id="uploadArea">
         <div class="upload-area-inner">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <p class="upload-text">点击或拖拽视频文件到此处</p>
           <p class="upload-hint">MP4 / WebM / MOV / AVI / MKV，建议 ≤100MB（手机端更小），最大 300MB</p>
         </div>
@@ -123,7 +123,7 @@
       </div>
       <div class="file-info" id="fileInfo" style="display:none">
         <div class="file-info-card">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="3"/><polygon points="10,8 16,12 10,16"/></svg>
           <div class="file-info-details">
             <span class="file-info-name" id="fileName"></span>
             <span class="file-info-meta"><span id="fileSize"></span> · <span id="fileFormat"></span></span>
@@ -476,15 +476,24 @@
       </div>
     </div><!-- /viewHistory -->
 
-    <!-- 素材库视图（复用已处理结果文件） -->
+    <!-- 素材库视图 -->
     <div class="view-panel" id="viewAssets">
-      <div class="history-fullpage" id="assetLibraryPage">
-        <div class="history-empty-state" id="assetLibraryEmpty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-          <h3>素材库为空</h3>
-          <p>登录后处理视频，结果会保存到这里，可一键载入工作流继续编辑。</p>
+      <div class="assets-panel">
+        <div class="assets-toolbar">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            本地素材库
+          </h3>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="history-count" id="assetsCount"></div>
+            <button class="btn btn-sm btn-primary" id="assetsUploadBtn" title="添加本地素材到库" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              添加素材
+            </button>
+            <input type="file" id="assetsUploadInput" accept="video/*,audio/*,image/*" style="display:none" />
+          </div>
         </div>
-        <div class="history-grid" id="assetLibraryList"></div>
+        <div class="assets-grid" id="assetsGrid"></div>
       </div>
     </div><!-- /viewAssets -->
 
