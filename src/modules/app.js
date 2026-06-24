@@ -4,7 +4,6 @@ var App = {
   _currentResult: null,
   _resultType: null,
   _downloadFilename: null,
-  _resultURL: null,
 
   async init() {
     Status.init();
@@ -21,8 +20,29 @@ var App = {
     TranscodeModule.init();
     SpeedModule.init();
     AudioAdjustModule.init();
-    HistoryModule.init();
-    AssetLibrary.init();
+    try {
+      if (typeof HistoryModule !== 'undefined' && HistoryModule.init) {
+        await HistoryModule.init().catch(function (err) {
+          console.warn('HistoryModule 初始化失败（历史记录功能可能不可用）', err);
+        });
+      } else {
+        console.warn('HistoryModule 未加载，历史记录功能不可用');
+      }
+    } catch (err) {
+      console.warn('HistoryModule 初始化异常:', err);
+    }
+
+    try {
+      if (typeof AssetsModule !== 'undefined' && AssetsModule.init) {
+        await AssetsModule.init().catch(function (err) {
+          console.warn('AssetsModule 初始化失败（素材库功能可能不可用）', err);
+        });
+      } else {
+        console.warn('AssetsModule 未加载，素材库功能不可用');
+      }
+    } catch (err) {
+      console.warn('AssetsModule 初始化异常:', err);
+    }
 
     this._initViewTabs();
     this._initSidebar();
@@ -141,10 +161,6 @@ var App = {
         if (viewName === 'history' && HistoryModule._enabled) {
           HistoryModule._refresh();
         }
-        // 切换到素材库视图时自动刷新
-        if (viewName === 'assets' && typeof AssetLibrary !== 'undefined') {
-          AssetLibrary.refresh();
-        }
       });
     });
   },
@@ -219,35 +235,32 @@ var App = {
     resultSection.style.display = '';
     resultPreview.innerHTML = '';
 
-    // 释放上一次结果的 ObjectURL，避免内存泄漏
-    if (this._resultURL) URL.revokeObjectURL(this._resultURL);
     var url = URL.createObjectURL(blob);
-    this._resultURL = url;
 
     switch (type) {
       case 'video': {
-        // 处理前后对比：若仍有源视频，左右并排展示「原始素材」与「处理结果」
-        var srcUrl = (typeof Upload !== 'undefined' && Upload.getObjectURL) ? Upload.getObjectURL() : null;
-        if (srcUrl) {
-          resultPreview.innerHTML =
-            '<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;">' +
-              '<figure style="flex:1 1 280px;min-width:0;margin:0;text-align:center;">' +
-                '<figcaption style="font-size:13px;color:var(--text-muted,#888);margin-bottom:6px;">原始素材</figcaption>' +
-                '<video src="' + srcUrl + '" controls style="width:100%;max-height:360px;border-radius:8px;background:#000;"></video>' +
-              '</figure>' +
-              '<figure style="flex:1 1 280px;min-width:0;margin:0;text-align:center;">' +
-                '<figcaption style="font-size:13px;color:var(--text-muted,#888);margin-bottom:6px;">处理结果</figcaption>' +
-                '<video src="' + url + '" controls style="width:100%;max-height:360px;border-radius:8px;background:#000;"></video>' +
-              '</figure>' +
-            '</div>';
-        } else {
-          resultPreview.innerHTML = '<video src="' + url + '" controls style="max-width:100%;max-height:400px;border-radius:8px;"></video>';
-        }
+        var originalUrl = (typeof Upload !== 'undefined' && Upload.getObjectURL) ? Upload.getObjectURL() : null;
+        resultPreview.innerHTML =
+          '<div class="compare-view">' +
+            '<div class="compare-col">' +
+              '<div class="compare-label">原始素材</div>' +
+              '<div class="compare-video-wrap">' +
+                '<video src="' + (originalUrl || url) + '" controls playsinline preload="metadata" style="max-width:100%;max-height:360px;border-radius:12px;"></video>' +
+              '</div>' +
+            '</div>' +
+            '<div class="compare-divider"></div>' +
+            '<div class="compare-col">' +
+              '<div class="compare-label">处理结果</div>' +
+              '<div class="compare-video-wrap">' +
+                '<video src="' + url + '" controls playsinline preload="metadata" style="max-width:100%;max-height:360px;border-radius:12px;"></video>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
         break;
       }
       case 'gif':
       case 'image':
-        resultPreview.innerHTML = '<img src="' + url + '" alt="处理结果" style="max-width:100%;max-height:400px;border-radius:8px;">';
+        resultPreview.innerHTML = '<img src="' + url + '" alt="处理结果" style="max-width:100%;max-height:400px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.12);">';
         break;
       case 'audio':
         resultPreview.innerHTML = '<audio src="' + url + '" controls style="width:100%;margin:16px 0;"></audio>';
@@ -272,7 +285,6 @@ var App = {
     this._currentResult = null;
     this._resultType = null;
     this._downloadFilename = null;
-    if (this._resultURL) { URL.revokeObjectURL(this._resultURL); this._resultURL = null; }
     document.getElementById('resultSection').style.display = 'none';
     document.getElementById('downloadBtn').style.display = 'none';
     var continueBtn = document.getElementById('continueBtn');
