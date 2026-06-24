@@ -65,47 +65,51 @@ const Preview = {
     var initActive = document.querySelector('.tab.active');
     this._syncSeekButtons(initActive ? initActive.dataset.tab : 'trim');
 
-    this._initShortcuts();
-  },
-
-  /**
-   * 全局键盘快捷键：
-   *   空格 → 播放 / 暂停
-   *   [    → 标记当前时间为「起始点」（按当前功能映射）
-   *   ]    → 标记当前时间为「结束点」
-   * 仅在预览区可见时生效；焦点位于输入控件时不拦截，避免输入文本时误触发。
-   */
-  _initShortcuts() {
-    var self = this;
+    // 键盘快捷键
     document.addEventListener('keydown', function (e) {
-      // 预览区未显示（没有加载视频）→ 不处理
-      if (!self._previewSection || self._previewSection.style.display === 'none') return;
-
-      // 焦点在输入框 / 文本域 / 下拉 / 可编辑元素时，交还给浏览器，避免误触发
-      var el = document.activeElement;
-      if (el) {
-        var tag = el.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable) return;
-      }
-
-      // 带修饰键的组合键（如复制粘贴）不处理
+      // 跳过输入框/文本域/选择框焦点时的快捷键
+      var tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // 跳过可编辑内容区域
+      if (e.target.isContentEditable) return;
+      // 跳过组合键（如 Ctrl+C）
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      switch (e.key) {
-        case ' ':
-        case 'Spacebar': // 兼容旧版浏览器
-          e.preventDefault(); // 阻止页面滚动，并避免与 <video> 原生空格行为重复触发
-          if (self._video.paused) self._video.play();
-          else self._video.pause();
-          break;
-        case '[':
+      var video = self._video;
+      if (!video || !video.src) return;
+
+      var cfg = self.SEEK_TARGETS[self._activeTab()];
+      var isLeftBracket = e.code === 'BracketLeft' || e.key === '[' || e.key === '【';
+      var isRightBracket = e.code === 'BracketRight' || e.key === ']' || e.key === '】';
+
+      // Space: 播放/暂停
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (video.paused) video.play();
+        else video.pause();
+        return;
+      }
+
+      // [: 标记起始点
+      if (isLeftBracket) {
+        if (cfg && cfg.start) {
           e.preventDefault();
           self._applySeek('start');
-          break;
-        case ']':
+        } else {
+          Status.toast('当前功能不支持标记起始点，请切换到「裁剪」或「GIF」标签', 'warning');
+        }
+        return;
+      }
+
+      // ]: 标记结束点
+      if (isRightBracket) {
+        if (cfg && cfg.end) {
           e.preventDefault();
           self._applySeek('end');
-          break;
+        } else {
+          Status.toast('当前功能不支持标记结束点，请切换到「裁剪」或「GIF」标签', 'warning');
+        }
+        return;
       }
     });
   },
