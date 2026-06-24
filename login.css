@@ -1,0 +1,502 @@
+/* ============================================================
+   登录页 — 深墨绿 + 明黄 + 薄荷青主题
+   主色：深墨绿 | 强调：明黄 | 辅助：薄荷青 | 内容区：白色
+   ============================================================ */
+
+/* ===== CSS 变量 ===== */
+:root {
+  --login-primary: #0b393f;
+  --login-primary-hover: #0a2f35;
+  --login-primary-active: #082529;
+  --login-primary-ring: rgba(11, 57, 63, 0.12);
+  --login-accent: #f8e28b;
+  --login-accent-light: #fdf9e6;
+  --login-warm: #aad9d9;
+  --login-warm-light: #eef6f6;
+
+  --login-error: #c44b4b;
+  --login-success: #2d8a6e;
+
+  --login-bg: #0b393f;
+  --login-bg-orb: rgba(170, 217, 217, 0.08);
+  --login-surface: #ffffff;
+  --login-surface-ring: rgba(11, 57, 63, 0.08);
+  --login-border: #d5e3e3;
+  --login-border-hover: #b8d0d0;
+  --login-input-bg: #f7fafa;
+
+  --login-text: #0b393f;
+  --login-text-secondary: #5a7a7a;
+  --login-text-muted: #8fa8a8;
+
+  --login-shadow: 0 8px 32px rgba(11, 57, 63, 0.12);
+  --login-shadow-hover: 0 12px 48px rgba(11, 57, 63, 0.16);
+  --login-shadow-glow: 0 0 40px rgba(248, 226, 139, 0.15);
+  --login-shadow-ring: 0 0 0 4px var(--login-primary-ring);
+}
+
+[data-theme="dark"] {
+  --login-bg: #081e22;
+  --login-bg-orb: rgba(170, 217, 217, 0.06);
+  --login-surface: #0e2d32;
+  --login-surface-ring: rgba(170, 217, 217, 0.1);
+  --login-border: #1a454d;
+  --login-border-hover: #245660;
+  --login-input-bg: rgba(14, 45, 50, 0.6);
+
+  --login-text: #e8f0f0;
+  --login-text-secondary: #8db5b5;
+  --login-text-muted: #5a8888;
+
+  --login-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --login-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.45);
+  --login-shadow-glow: 0 0 40px rgba(248, 226, 139, 0.08);
+}
+
+:root {
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-family);
+  background: var(--login-bg);
+  color: var(--login-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background var(--transition);
+}
+
+/* ===== 背景装饰光球 ===== */
+.login-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.login-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  transition: opacity var(--transition);
+}
+
+.login-bg-orb--1 {
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, var(--login-warm), var(--login-accent));
+  opacity: 0.1;
+  top: -140px;
+  right: -120px;
+}
+
+.login-bg-orb--2 {
+  width: 400px;
+  height: 400px;
+  background: linear-gradient(225deg, var(--login-accent), var(--login-warm));
+  opacity: 0.08;
+  bottom: -100px;
+  left: -100px;
+}
+
+.login-bg-orb--3 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(45deg, var(--login-accent), var(--login-warm));
+  opacity: 0.06;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ===== 登录页面布局 ===== */
+.login-page {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--login-surface);
+  border: 1px solid var(--login-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--login-shadow), 0 0 0 1px rgba(11, 57, 63, 0.03);
+  padding: 48px 40px 40px;
+  position: relative;
+  transition: all var(--transition);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.login-card:hover {
+  box-shadow: var(--login-shadow-hover), var(--login-shadow-glow);
+  transform: translateY(-2px);
+  border-color: var(--login-border-hover);
+}
+
+/* ===== 主题切换按钮 ===== */
+.login-theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--login-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: all var(--transition);
+  color: var(--login-text-secondary);
+}
+
+.login-theme-toggle:hover {
+  background: var(--login-input-bg);
+  border-color: var(--login-border-hover);
+  color: var(--login-primary);
+  transform: rotate(15deg) scale(1.05);
+}
+
+.login-theme-toggle:focus-visible {
+  outline: 2px solid var(--login-primary);
+  outline-offset: 2px;
+}
+
+/* ===== 头部 ===== */
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--login-text);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+  transition: all var(--transition);
+}
+
+.login-brand:hover { transform: scale(1.02); }
+
+.login-brand svg {
+  color: var(--login-primary);
+  filter: drop-shadow(0 2px 4px rgba(11, 57, 63, 0.2));
+}
+
+.login-subtitle {
+  font-size: 14px;
+  color: var(--login-text-secondary);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ===== 表单 ===== */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--login-text);
+  letter-spacing: 0.3px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 13px 16px;
+  font-size: 15px;
+  border: 1.5px solid var(--login-border);
+  border-radius: var(--radius);
+  background: var(--login-input-bg);
+  color: var(--login-text);
+  font-family: var(--font-family);
+  transition: all var(--transition);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-input::placeholder { color: var(--login-text-muted); }
+
+.form-input:hover { border-color: var(--login-border-hover); }
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--login-primary);
+  box-shadow: var(--login-shadow-ring), 0 2px 8px rgba(11, 57, 63, 0.08);
+  transform: translateY(-1px);
+}
+
+/* ===== 提示消息 ===== */
+.login-message {
+  font-size: 13px;
+  color: var(--login-text-secondary);
+  min-height: 20px;
+  text-align: center;
+  font-weight: 500;
+  transition: all var(--transition);
+}
+
+.login-message.success { color: var(--login-success); }
+.login-message.error { color: var(--login-error); }
+
+.login-hint-text {
+  font-size: 12px;
+  color: var(--login-text-muted);
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.6;
+  padding: 12px 16px;
+  background: var(--login-warm-light);
+  border-radius: var(--radius);
+  border: 1px solid var(--login-border);
+}
+
+[data-theme="dark"] .login-hint-text {
+  background: rgba(170, 217, 217, 0.08);
+}
+
+/* ===== 按钮 ===== */
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--font-family);
+  user-select: none;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--login-primary);
+  outline-offset: 3px;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-full { width: 100%; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--login-primary), var(--login-primary-hover));
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(11, 57, 63, 0.25), 0 2px 4px rgba(11, 57, 63, 0.15);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--login-primary-hover), var(--login-primary-active));
+  box-shadow: 0 6px 24px rgba(11, 57, 63, 0.35), 0 2px 8px rgba(11, 57, 63, 0.2);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(11, 57, 63, 0.2);
+}
+
+.btn-secondary {
+  background: var(--login-surface);
+  color: var(--login-text);
+  border-color: var(--login-border);
+  box-shadow: 0 1px 3px rgba(11, 57, 63, 0.04);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--login-input-bg);
+  border-color: var(--login-border-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(11, 57, 63, 0.08);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--login-text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--login-input-bg);
+  color: var(--login-text);
+  transform: translateY(-1px);
+}
+
+/* ===== 按钮 Loading ===== */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  opacity: 1 !important;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: btnSpinner 0.6s linear infinite;
+}
+
+.btn-secondary.btn-loading::after,
+.btn-ghost.btn-loading::after {
+  border-color: var(--login-border);
+  border-top-color: var(--login-primary);
+}
+
+@keyframes btnSpinner { to { transform: rotate(360deg); } }
+
+/* ===== 已登录状态 ===== */
+.login-signed-in {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.login-success-icon {
+  color: var(--login-success);
+  display: flex;
+  justify-content: center;
+}
+
+.login-success-icon svg {
+  filter: drop-shadow(0 2px 4px rgba(45, 138, 110, 0.2));
+}
+
+.login-signed-text {
+  font-size: 14px;
+  color: var(--login-text-secondary);
+}
+
+.login-signed-text strong { color: var(--login-text); }
+
+/* ===== 底部文案 ===== */
+.login-footer-text {
+  text-align: center;
+  font-size: 12px;
+  color: var(--login-text-muted);
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--login-border);
+  opacity: 0;
+  transition: border-color var(--transition);
+  line-height: 1.6;
+}
+
+/* ===== 入场动画初始状态 ===== */
+.login-card-animate {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.login-form-animate .form-group {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.login-actions-animate .btn {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.login-brand-animate {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* 错误抖动 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.form-input.shake { animation: shake 0.5s ease; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 480px) {
+  .login-page {
+    padding: 16px;
+    align-items: flex-start;
+    padding-top: 48px;
+  }
+
+  .login-card {
+    padding: 36px 24px 28px;
+    border-radius: var(--radius-lg);
+  }
+
+  .login-brand { font-size: 20px; }
+
+  .login-theme-toggle {
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .login-bg-orb { display: none; }
+}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--login-border-hover); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--login-text-muted); }
