@@ -24,6 +24,12 @@
   <link rel="stylesheet" href="/src/styles/style.css">
 </head>
 <body>
+  <!-- 背景装饰光晕 -->
+  <div class="bg-glow">
+    <div class="bg-glow-orb bg-glow-orb--1"></div>
+    <div class="bg-glow-orb bg-glow-orb--2"></div>
+  </div>
+
   <div id="appRoot"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
@@ -57,7 +63,7 @@
   <script src="/src/services/jobService.js"></script>
   <script src="/src/modules/confirmDialog.js"></script>
   <script src="/src/modules/history.js"></script>
-  <script src="/src/modules/assetLibrary.js"></script>
+  <script src="/src/modules/assets.js"></script>
   <script src="/src/modules/app.js"></script>
 
   <!-- GSAP 主界面动画 -->
@@ -78,46 +84,53 @@
         mm.add('(prefers-reduced-motion: no-preference)', function () {
           var tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
+          // 背景光晕淡入
+          tl.fromTo('.bg-glow-orb',
+            { scale: 0, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 1.2, ease: 'power4.out' },
+            0
+          );
+
           // 导航栏下滑
           tl.fromTo(navbar,
             { y: -40, opacity: 0 },
             { y: 0, opacity: 1, duration: 0.5 },
-            0
+            0.1
           );
 
           // 侧边栏从左滑入
           tl.fromTo(sidebar,
             { x: -60, opacity: 0 },
             { x: 0, opacity: 1, duration: 0.55 },
-            0.08
+            0.18
           );
 
           // 主内容区淡入
           tl.fromTo(main,
             { opacity: 0, y: 16 },
             { opacity: 1, y: 0, duration: 0.45 },
-            0.15
+            0.25
           );
 
           // 上传区横幅微弹
           tl.fromTo('.upload-banner',
             { opacity: 0, scale: 0.97 },
             { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.4)' },
-            0.3
+            0.4
           );
 
           // 状态栏淡入
           tl.fromTo('#statusBar',
             { opacity: 0, y: 8 },
             { opacity: 1, y: 0, duration: 0.35 },
-            0.4
+            0.5
           );
 
           // 工具标签按钮依次出现
           tl.fromTo('.tab',
             { opacity: 0, x: -12 },
             { opacity: 1, x: 0, stagger: 0.04, duration: 0.3, ease: 'power2.out' },
-            0.1
+            0.2
           );
         });
 
@@ -132,13 +145,13 @@
         document.addEventListener('mouseenter', function (e) {
           var btn = e.target.closest('.btn, .tab, .view-tab');
           if (!btn || btn.disabled || btn.classList.contains('btn-loading')) return;
-          gsap.to(btn, { y: -1, scale: 1.01, duration: 0.15, ease: 'power2.out', overwrite: 'auto' });
+          gsap.to(btn, { y: -2, scale: 1.02, duration: 0.2, ease: 'power2.out', overwrite: 'auto' });
         }, true);
 
         document.addEventListener('mouseleave', function (e) {
           var btn = e.target.closest('.btn, .tab, .view-tab');
           if (!btn) return;
-          gsap.to(btn, { y: 0, scale: 1, duration: 0.15, ease: 'power2.out', overwrite: 'auto' });
+          gsap.to(btn, { y: 0, scale: 1, duration: 0.2, ease: 'power2.out', overwrite: 'auto' });
         }, true);
       }
     })();
