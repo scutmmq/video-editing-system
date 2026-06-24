@@ -1,17 +1,19 @@
-// 处理历史模块（登录后启用）
-// 监听 result-ready 事件 → 结果上传 Storage、元数据/参数写入 Postgres，并渲染历史列表。
-// 未登录 / Supabase 未配置时为空操作，保持纯本地模式。
+// 处理历史模块（支持本地模式 + 云端模式）
+// 未登录时用 localStorage + IndexedDB 保存历史记录，登录后自动同步到云端
 
 const HistoryModule = {
   _enabled: false,
   _client: null,
   _userId: null,
   _projectId: null,
-  _projectFailed: false,   // 若项目创建失败（如 RLS），不再重试
-  _projectPromise: null,   // 进行中的项目获取，供并发调用复用
+  _projectFailed: false,
+  _projectPromise: null,
   _services: null,
   _listEl: null,
   _emptyStateEl: null,
+  _jobs: [],
+  _localMode: false, // true = 纯本地模式（未登录）
+  _db: null,         // IndexedDB 实例
 
   _opLabels: {
     trim: '视频裁剪',
@@ -34,75 +36,185 @@ const HistoryModule = {
     cancelled: '已取消',
   },
 
-  // 失败任务「一键重试」：操作 → 对应工具 tab、运行按钮、以及参数到表单字段的映射。
-  // 重试基于「当前已加载的源视频」用原参数重跑（失败任务本身未持久化源文件 / 结果）。
-  // type 省略表示普通取值控件（input/select），radio / checkbox 走专门处理。
-  RETRY_TARGETS: {
-    trim: { tab: 'trim', run: 'trimBtn', fields: [
-      { param: 'start', id: 'trimStart' }, { param: 'end', id: 'trimEnd' } ] },
-    gif: { tab: 'gif', run: 'gifBtn', fields: [
-      { param: 'start', id: 'gifStart' }, { param: 'duration', id: 'gifDuration' },
-      { param: 'width', id: 'gifWidth' }, { param: 'fps', id: 'gifFps' } ] },
-    extract_audio: { tab: 'audio', run: 'audioBtn', fields: [
-      { param: 'format', id: 'audioFormat' } ] },
-    watermark: { tab: 'watermark', run: 'watermarkBtn', fields: [
-      { param: 'text', id: 'wmText' }, { param: 'fontSize', id: 'wmFontSize' },
-      { param: 'color', id: 'wmColor' }, { param: 'position', id: 'wmPosition' } ] },
-    filter: { tab: 'filter', run: 'filterBtn', fields: [
-      { param: 'filter', type: 'radio', name: 'filter' } ] },
-    capture_cover: { tab: 'cover', run: 'coverBtn', fields: [
-      { param: 'time', id: 'coverTime' } ] },
-    transform: { tab: 'transform', run: 'transformBtn', fields: [
-      { param: 'rotate', id: 'tfRotate' }, { param: 'scale', id: 'tfScale' },
-      { param: 'fit', id: 'tfFit' }, { param: 'hflip', id: 'tfHflip', type: 'checkbox' },
-      { param: 'vflip', id: 'tfVflip', type: 'checkbox' } ] },
-    transcode: { tab: 'transcode', run: 'transcodeBtn', fields: [
-      { param: 'format', id: 'tcFormat' }, { param: 'resolution', id: 'tcResolution' },
-      { param: 'quality', id: 'tcQuality' } ] },
-    speed: { tab: 'speed', run: 'speedBtn', fields: [
-      { param: 'speed', id: 'spSpeed' }, { param: 'reverse', id: 'spReverse', type: 'checkbox' } ] },
-    audio_adjust: { tab: 'audioadj', run: 'audioAdjustBtn', fields: [
-      { param: 'mute', id: 'aaMute', type: 'checkbox' }, { param: 'volumeDb', id: 'aaVolume' },
-      { param: 'fadeIn', id: 'aaFadeIn' }, { param: 'fadeOut', id: 'aaFadeOut' } ] },
-  },
-
   async init() {
-    this._listEl = document.getElementById('historyList');
-    this._emptyStateEl = document.getElementById('historyEmptyState');
+    try {
+      this._listEl = document.getElementById('historyList');
+      this._emptyStateEl = document.getElementById('historyEmptyState');
 
-    const state = window.VideoEditingSupabase;
-    if (!state || !state.isConfigured || !state.client) {
-      // 未配置 → 纯本地模式，显示引导状态
-      if (this._emptyStateEl) this._emptyStateEl.style.display = '';
-      return;
+      const state = window.VideoEditingSupabase;
+      if (!state || !state.isConfigured || !state.client) {
+        this._localMode = true;
+        this._enabled = true;
+        try {
+          await this._initLocalDB();
+          await this._refresh();
+        } catch (err) {
+          console.warn('本地历史初始化失败，使用内存模式', err);
+          this._db = null;
+          this._jobs = [];
+        }
+        document.addEventListener('result-ready', (e) => {
+          this._persistResult(e.detail);
+        });
+        return;
+      }
+
+      this._client = state.client;
+      this._services = {
+        storage: StorageService.createStorageService(this._client),
+        project: ProjectService.createProjectService(this._client),
+        asset: AssetService.createAssetService(this._client),
+        job: JobService.createJobService(this._client),
+      };
+
+      let userId = null;
+      try { userId = await this._ensureUser(); } catch (_e) { userId = null; }
+
+      if (!userId) {
+        this._localMode = true;
+        this._enabled = true;
+        try {
+          await this._initLocalDB();
+          await this._refresh();
+        } catch (err) {
+          console.warn('本地历史初始化失败，使用内存模式', err);
+          this._db = null;
+          this._jobs = [];
+        }
+        document.addEventListener('result-ready', (e) => {
+          this._persistResult(e.detail);
+        });
+        return;
+      }
+
+      this._enabled = true;
+
+      document.addEventListener('result-ready', (e) => {
+        this._persistResult(e.detail);
+      });
+
+      await this._refresh();
+    } catch (err) {
+      console.error('HistoryModule.init() 失败:', err);
+      this._enabled = false;
+      this._localMode = true;
+      this._db = null;
+      this._jobs = [];
     }
-
-    this._client = state.client;
-    this._services = {
-      storage: StorageService.createStorageService(this._client),
-      project: ProjectService.createProjectService(this._client),
-      asset: AssetService.createAssetService(this._client),
-      job: JobService.createJobService(this._client),
-    };
-
-    const userId = await this._ensureUser();
-    if (!userId) {
-      // 未登录 → 显示引导状态
-      if (this._emptyStateEl) this._emptyStateEl.style.display = '';
-      return;
-    }
-
-    this._enabled = true;
-
-    // 结果产生 → 持久化
-    document.addEventListener('result-ready', (e) => {
-      this._persistResult(e.detail);
-    });
-
-    await this._refresh();
   },
 
-  // 生成 uuid：优先 crypto.randomUUID（安全上下文），否则用 getRandomValues 兜底
+  // ========== 本地模式（IndexedDB） ==========
+
+  async _initLocalDB() {
+    if (!window.indexedDB) {
+      console.warn('当前浏览器不支持 IndexedDB，历史记录将使用内存存储（刷新页面后丢失）');
+      this._db = null;
+      return;
+    }
+    try {
+      // 加 3 秒超时，防止 IndexedDB 在某些浏览器中无限阻塞
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => resolve('timeout'), 3000);
+      });
+
+      const dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open('VideoEditingDB', 1);
+        req.onerror = () => {
+          console.warn('IndexedDB 打开失败：', req.error);
+          reject(req.error);
+        };
+        req.onsuccess = () => {
+          this._db = req.result;
+          resolve();
+        };
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('history')) {
+            db.createObjectStore('history', { keyPath: 'id' });
+          }
+          if (!db.objectStoreNames.contains('assets')) {
+            db.createObjectStore('assets', { keyPath: 'id' });
+          }
+        };
+      });
+
+      const result = await Promise.race([dbPromise, timeoutPromise]);
+      if (result === 'timeout') {
+        console.warn('IndexedDB 初始化超时，使用内存存储（刷新页面后丢失）');
+        this._db = null;
+      }
+    } catch (err) {
+      console.warn('IndexedDB 不可用，历史记录将使用内存存储（刷新页面后丢失）', err);
+      this._db = null;
+    }
+  },
+
+  async _saveLocalJob(job) {
+    if (!this._db) return;
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('history', 'readwrite');
+      const store = tx.objectStore('history');
+      const req = store.put(job);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _getLocalJobs() {
+    if (!this._db) return [];
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('history', 'readonly');
+      const store = tx.objectStore('history');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _deleteLocalJob(jobId) {
+    if (!this._db) return;
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('history', 'readwrite');
+      const store = tx.objectStore('history');
+      const req = store.delete(jobId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _saveLocalAsset(asset) {
+    if (!this._db) return;
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readwrite');
+      const store = tx.objectStore('assets');
+      const req = store.put(asset);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _getLocalAsset(assetId) {
+    if (!this._db) return null;
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readonly');
+      const store = tx.objectStore('assets');
+      const req = store.get(assetId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  },
+
+  async _deleteLocalAsset(assetId) {
+    if (!this._db) return;
+    return new Promise((resolve, reject) => {
+      const tx = this._db.transaction('assets', 'readwrite');
+      const store = tx.objectStore('assets');
+      const req = store.delete(assetId);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  },
+
   _uuid() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') {
       return window.crypto.randomUUID();
@@ -122,7 +234,6 @@ const HistoryModule = {
     );
   },
 
-  // 带退避的重试（用于网络相关操作，如 Storage 上传）
   async _retry(fn, retries) {
     var n = (typeof retries === 'number') ? retries : 2;
     var lastErr;
@@ -150,8 +261,7 @@ const HistoryModule = {
 
   async _ensureProject() {
     if (this._projectId) return this._projectId;
-    if (this._projectFailed) return null;           // 之前已失败（如 RLS），不再重试
-    // 并发复用同一请求，避免多个结果同时触发重复创建项目
+    if (this._projectFailed) return null;
     if (!this._projectPromise) {
       this._projectPromise = (async () => {
         const userId = await this._ensureUser();
@@ -161,7 +271,7 @@ const HistoryModule = {
           this._projectId = project.id;
           return this._projectId;
         } catch (err) {
-          this._projectFailed = true;               // 标记失败，后续调用直接短路
+          this._projectFailed = true;
           throw err;
         }
       })();
@@ -169,17 +279,57 @@ const HistoryModule = {
     try {
       return await this._projectPromise;
     } finally {
-      // 成功已缓存 _projectId；否则清空以便后续可重试（_projectFailed 仍会短路）
       if (!this._projectId) this._projectPromise = null;
     }
   },
 
   async _persistResult(detail) {
-    if (!this._enabled || !detail || !detail.meta || !detail.meta.operation) return;
+    if (!detail || !detail.meta || !detail.meta.operation) return;
 
     const { blob, type, filename, meta } = detail;
     const kind = HistoryMeta.resultKindForOperation(meta.operation);
     if (!kind) return;
+
+    // 本地模式：保存到 IndexedDB
+    if (this._localMode) {
+      const jobId = this._uuid();
+      const assetId = this._uuid();
+      const timestamp = new Date().toISOString();
+
+      const job = {
+        id: jobId,
+        operation: meta.operation,
+        params: meta.params || {},
+        status: 'succeeded',
+        result_asset_id: assetId,
+        created_at: timestamp,
+        updated_at: timestamp,
+        local: true,
+      };
+
+      const asset = {
+        id: assetId,
+        kind: kind,
+        original_filename: filename,
+        mime_type: blob.type,
+        size_bytes: blob.size,
+        blob: blob, // IndexedDB 可以直接存 Blob
+        created_at: timestamp,
+      };
+
+      try {
+        await this._saveLocalJob(job);
+        await this._saveLocalAsset(asset);
+        if (window.Status) Status.toast('已保存到本地历史记录', 'success');
+      } catch (err) {
+        console.error('本地历史保存失败', err);
+        if (window.Status) Status.toast('历史保存失败（存储空间不足）', 'error');
+      }
+      await this._refresh();
+      return;
+    }
+
+    // 云端模式（原逻辑）
     const bucket = HistoryMeta.bucketForKind(kind);
 
     let projectId;
@@ -189,14 +339,12 @@ const HistoryModule = {
       projectId = await this._ensureProject();
       if (!userId || !projectId) return;
     } catch (err) {
-      // RLS 策略未推送（42501）是最常见的根因，给出诊断提示
       if (err && err.code === '42501') {
         console.error('历史记录：RLS 策略阻止了项目创建。请执行 npx supabase db push 推送数据库迁移。', err);
         if (window.Status) {
           Status.toast('历史记录保存失败：数据库权限不足，请检查 Supabase 迁移是否已推送', 'warning');
         }
       } else if (err && err.code === '23503') {
-        // FK 约束失败：profiles 表可能缺少对应用户行（trigger 未触发）
         console.error('历史记录：外键约束失败，profiles 表可能缺少用户记录。请检查 on_auth_user_created trigger。', err);
         if (window.Status) {
           Status.toast('历史记录保存失败：用户资料未同步，请重新登录', 'warning');
@@ -249,30 +397,36 @@ const HistoryModule = {
   },
 
   async _refresh() {
-    if (!this._enabled || !this._listEl) return;
-    if (this._projectFailed) {
-      // 项目创建已失败（如 RLS 未推送），不再尝试加载列表
-      this._listEl.innerHTML = '';
-      if (this._emptyStateEl) {
-        this._emptyStateEl.style.display = '';
-        this._emptyStateEl.querySelector('h3').textContent = '数据库权限不足';
-        this._emptyStateEl.querySelector('p').textContent = '无法加载处理历史。请管理员执行 npx supabase db push 推送数据库迁移。';
-      }
-      return;
-    }
+    if (!this._listEl) return;
+
     let jobs = [];
-    try {
-      const projectId = await this._ensureProject();
-      if (!projectId) return;
-      jobs = await this._services.job.listJobs(projectId);
-    } catch (err) {
-      console.error('历史记录：加载列表失败', err);
-      return;
+
+    if (this._localMode) {
+      jobs = await this._getLocalJobs();
+    } else {
+      if (this._projectFailed) {
+        this._listEl.innerHTML = '';
+        if (this._emptyStateEl) {
+          this._emptyStateEl.style.display = '';
+          this._emptyStateEl.querySelector('h3').textContent = '数据库权限不足';
+          this._emptyStateEl.querySelector('p').textContent = '无法加载处理历史。请管理员执行 npx supabase db push 推送数据库迁移。';
+        }
+        return;
+      }
+      try {
+        const projectId = await this._ensureProject();
+        if (!projectId) return;
+        jobs = await this._services.job.listJobs(projectId);
+      } catch (err) {
+        console.error('历史记录：加载列表失败', err);
+        return;
+      }
     }
+
+    this._jobs = jobs;
     this._render(jobs);
   },
 
-  // HTML 转义，防止 params/error_message 等用户内容注入（存储型 XSS）
   _esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -280,22 +434,23 @@ const HistoryModule = {
   },
 
   _render(jobs) {
-    // 切换空状态 / 列表显示
     if (!jobs || jobs.length === 0) {
       if (this._listEl) this._listEl.innerHTML = '';
       if (this._emptyStateEl) {
         this._emptyStateEl.style.display = '';
-        this._emptyStateEl.querySelector('h3').textContent = '还没有处理记录';
-        this._emptyStateEl.querySelector('p').textContent = '登录后处理视频，结果会自动保存到这里，可随时预览或下载。';
+        var h3 = this._emptyStateEl.querySelector('h3');
+        var p = this._emptyStateEl.querySelector('p');
+        if (h3) h3.textContent = '还没有处理记录';
+        if (p) {
+          p.textContent = this._localMode
+            ? '处理视频后，结果会自动保存到本地历史记录。'
+            : '登录后处理视频，结果会自动保存到这里，可随时预览或下载。';
+        }
       }
       return;
     }
 
     if (this._emptyStateEl) this._emptyStateEl.style.display = 'none';
-
-    // 缓存按 id 索引的任务，供「重试」按钮读取原始参数
-    this._jobsById = {};
-    jobs.forEach((job) => { if (job && job.id) this._jobsById[job.id] = job; });
 
     const rows = jobs.map((job) => {
       const op = this._esc(this._opLabels[job.operation] || job.operation);
@@ -305,6 +460,7 @@ const HistoryModule = {
       const canOpen = job.status === 'succeeded' && job.result_asset_id;
       const assetId = this._esc(job.result_asset_id || '');
       const jobId = this._esc(job.id || '');
+      const isLocal = job.local ? true : false;
 
       const statusClass = 'history-status-' + this._esc(job.status);
       const errMsg = this._esc((job.error_message || '').substring(0, 40));
@@ -312,25 +468,28 @@ const HistoryModule = {
         ? `<span class="history-error" title="${errMsg}">${errMsg}</span>`
         : '';
 
-      // 失败且该操作支持重试时，渲染「重试」按钮
-      const retryHtml = (job.status === 'failed' && this.RETRY_TARGETS[job.operation])
-        ? `<button class="btn btn-sm btn-primary-outline" data-retry="${jobId}">重试</button>`
-        : '';
-
-      const deleteBtnHtml = `<button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-            </button>`;
+      const localBadge = isLocal ? '<span class="history-local-badge" title="本地保存">本地</span>' : '';
 
       const actionHtml = canOpen
         ? `<div class="history-item-actions">
             <button class="btn btn-sm btn-primary-outline" data-asset="${assetId}">预览</button>
             <button class="btn btn-sm btn-outline" data-download="${assetId}">下载</button>
-            ${deleteBtnHtml}
+            <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
           </div>`
-        : `<div class="history-item-actions">
-            ${retryHtml}
-            ${deleteBtnHtml}
-          </div>`;
+        : (job.status === 'failed'
+          ? `<div class="history-item-actions">
+              <button class="btn btn-sm btn-accent" data-retry="${jobId}" data-op="${this._esc(job.operation)}" title="使用相同的参数重新处理">重试</button>
+              <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </div>`
+          : `<div class="history-item-actions">
+              <button class="btn btn-sm btn-ghost btn-delete" data-delete="${jobId}" data-assetid="${assetId}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </div>`);
 
       const opIcon = this._opIcon(job.operation);
 
@@ -341,6 +500,7 @@ const HistoryModule = {
             ${op}
           </span>
           <span class="history-status ${statusClass}">${statusText}</span>
+          ${localBadge}
         </div>
         <div class="history-item-body">
           <span class="history-summary">${summary}</span>
@@ -355,7 +515,6 @@ const HistoryModule = {
 
     this._listEl.innerHTML = rows.join('');
 
-    // 预览按钮
     this._listEl.querySelectorAll('button[data-asset]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -363,7 +522,6 @@ const HistoryModule = {
       });
     });
 
-    // 下载按钮
     this._listEl.querySelectorAll('button[data-download]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -371,7 +529,6 @@ const HistoryModule = {
       });
     });
 
-    // 删除按钮
     this._listEl.querySelectorAll('button[data-delete]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -379,71 +536,16 @@ const HistoryModule = {
       });
     });
 
-    // 重试按钮（失败任务）
     this._listEl.querySelectorAll('button[data-retry]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._retryJob(btn.dataset.retry);
+        const jobId = btn.dataset.retry;
+        const op = btn.dataset.op;
+        this._retryJob(jobId, op);
       });
     });
   },
 
-  /** 失败任务一键重试：用原参数在当前已加载的源视频上重跑 */
-  _retryJob(jobId) {
-    const job = this._jobsById && this._jobsById[jobId];
-    if (!job) return;
-    const cfg = this.RETRY_TARGETS[job.operation];
-    if (!cfg) {
-      if (window.Status) Status.toast('该操作暂不支持一键重试', 'warning');
-      return;
-    }
-
-    // 失败任务未持久化源文件，必须有当前已加载的源视频才能重跑
-    const hasSource = typeof Upload !== 'undefined' && Upload.getFile && Upload.getFile();
-    if (window.App) App.switchView('process');
-    if (!hasSource) {
-      if (window.Status) Status.toast('请先上传原视频，再点击重试', 'warning');
-      return;
-    }
-
-    // 切到对应工具 tab（点击以激活面板并同步预览区按钮）
-    const tabBtn = document.querySelector('.tab[data-tab="' + cfg.tab + '"]');
-    if (tabBtn) tabBtn.click();
-
-    // 回填原参数到表单，再触发运行按钮
-    this._applyParams(cfg, job.params || {});
-    const runBtn = document.getElementById(cfg.run);
-    if (runBtn) runBtn.click();
-    if (window.Status) Status.toast('已用原参数重新处理', 'info');
-  },
-
-  /** 把存储的 params 回填到对应功能的表单控件 */
-  _applyParams(cfg, params) {
-    cfg.fields.forEach((f) => {
-      const val = params[f.param];
-      if (val === undefined || val === null) return;
-
-      if (f.type === 'radio') {
-        const r = document.querySelector('input[name="' + f.name + '"][value="' + String(val) + '"]');
-        if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
-        return;
-      }
-
-      const el = document.getElementById(f.id);
-      if (!el) return;
-      if (f.type === 'checkbox') {
-        el.checked = !!val;
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      } else {
-        el.value = String(val);
-        // 派发 input + change，让可视化滑块、滤镜描述等监听者同步
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    });
-  },
-
-  /** 操作类型 → SVG 图标 */
   _opIcon(operation) {
     const icons = {
       trim: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h20M9 7v14M15 7v14"/></svg>',
@@ -461,6 +563,22 @@ const HistoryModule = {
   },
 
   async _openAsset(assetId) {
+    if (this._localMode) {
+      try {
+        const asset = await this._getLocalAsset(assetId);
+        if (!asset || !asset.blob) {
+          if (window.Status) Status.toast('文件已过期或无法读取', 'error');
+          return;
+        }
+        const url = URL.createObjectURL(asset.blob);
+        window.open(url, '_blank');
+      } catch (err) {
+        console.error('本地历史：打开结果失败', err);
+        if (window.Status) Status.toast('无法打开该结果', 'error');
+      }
+      return;
+    }
+
     try {
       const asset = await this._services.asset.getAssetById(assetId);
       const url = await this._services.storage.getSignedUrl(asset.bucket, asset.storage_path);
@@ -472,19 +590,172 @@ const HistoryModule = {
   },
 
   async _downloadAsset(assetId) {
+    if (this._localMode) {
+      try {
+        const asset = await this._getLocalAsset(assetId);
+        if (!asset || !asset.blob) {
+          if (window.Status) Status.toast('文件已过期或无法读取', 'error');
+          return;
+        }
+        App.download(asset.blob, asset.original_filename || 'download');
+      } catch (err) {
+        console.error('本地历史：下载失败', err);
+        if (window.Status) Status.toast('下载失败', 'error');
+      }
+      return;
+    }
+
     try {
       const asset = await this._services.asset.getAssetById(assetId);
       const url = await this._services.storage.getSignedUrl(asset.bucket, asset.storage_path);
-      // 签名 URL 跨域，<a download> 无法强制下载，先 fetch 为 blob 再交给统一下载逻辑
       const res = await fetch(url);
       if (!res.ok) throw new Error('下载失败：HTTP ' + res.status);
       const blob = await res.blob();
-      // 复用 App.download（含移动端 Web Share + 桌面回退）
       App.download(blob, asset.original_filename || 'download');
     } catch (err) {
       console.error('历史记录：下载失败', err);
       if (window.Status) Status.toast('下载失败，请稍后重试', 'error');
     }
+  },
+
+  async _retryJob(jobId, opName) {
+    let job;
+    if (this._localMode) {
+      job = this._jobs.find(function (j) { return j.id === jobId; });
+    } else {
+      job = this._jobs.find(function (j) { return j.id === jobId; });
+    }
+
+    if (!job || !job.params) {
+      if (window.Status) Status.toast('无法获取任务参数，请手动重试', 'error');
+      return;
+    }
+
+    var file = (typeof Upload !== 'undefined' && Upload.getFile) ? Upload.getFile() : null;
+    if (!file) {
+      if (window.Status) {
+        Status.toast('请先上传视频文件，再点击重试', 'warning');
+      }
+      if (typeof App !== 'undefined' && App.switchView) {
+        App.switchView('process');
+      }
+      return;
+    }
+
+    if (typeof App !== 'undefined' && App.switchView) {
+      App.switchView('process');
+    }
+
+    var tabMap = {
+      trim: 'trim', gif: 'gif', extract_audio: 'audio',
+      watermark: 'watermark', filter: 'filter', capture_cover: 'cover',
+      transform: 'transform', transcode: 'transcode', speed: 'speed',
+      audio_adjust: 'audioadj'
+    };
+    var tabName = tabMap[opName];
+    if (!tabName) {
+      if (window.Status) Status.toast('不支持重试该类型任务', 'error');
+      return;
+    }
+
+    var tabBtn = document.querySelector('.sidebar-item.tab[data-tab="' + tabName + '"]');
+    if (tabBtn) tabBtn.click();
+
+    await new Promise(function (r) { setTimeout(r, 150); });
+
+    var p = job.params;
+
+    switch (opName) {
+      case 'trim':
+        this._setVal('trimStart', p.start);
+        this._setVal('trimEnd', p.end);
+        break;
+      case 'gif':
+        this._setVal('gifStart', p.start);
+        this._setVal('gifDuration', p.duration);
+        this._setSel('gifWidth', p.width);
+        this._setSel('gifFps', p.fps);
+        break;
+      case 'extract_audio':
+        this._setSel('audioFormat', p.format);
+        break;
+      case 'watermark':
+        this._setVal('wmText', p.text);
+        this._setVal('wmFontSize', p.fontSize);
+        this._setVal('wmColor', p.color);
+        this._setSel('wmPosition', p.position);
+        break;
+      case 'filter':
+        this._setRadio('filter', p.filter);
+        break;
+      case 'capture_cover':
+        this._setVal('coverTime', p.time);
+        break;
+      case 'transform':
+        this._setSel('tfRotate', p.rotate);
+        this._setSel('tfScale', p.scale);
+        this._setSel('tfFit', p.fit);
+        this._setCheck('tfHflip', p.hflip);
+        this._setCheck('tfVflip', p.vflip);
+        break;
+      case 'transcode':
+        this._setSel('tcFormat', p.format);
+        this._setSel('tcResolution', p.resolution);
+        this._setSel('tcQuality', p.quality);
+        break;
+      case 'speed':
+        this._setSel('spSpeed', p.speed);
+        this._setCheck('spReverse', p.reverse);
+        break;
+      case 'audio_adjust':
+        this._setCheck('aaMute', p.mute);
+        this._setVal('aaVolume', p.volume);
+        this._setVal('aaFadeIn', p.fadeIn);
+        this._setVal('aaFadeOut', p.fadeOut);
+        break;
+    }
+
+    document.querySelectorAll('.tab-panel.active .form-input').forEach(function (el) {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    var btnId = {
+      trim: 'trimBtn', gif: 'gifBtn', extract_audio: 'audioBtn',
+      watermark: 'watermarkBtn', filter: 'filterBtn', capture_cover: 'coverBtn',
+      transform: 'transformBtn', transcode: 'transcodeBtn', speed: 'speedBtn',
+      audio_adjust: 'audioAdjustBtn'
+    }[opName];
+    var btn = document.getElementById(btnId);
+    if (btn) {
+      if (window.Status) Status.toast('正在使用历史参数重新处理...', 'info');
+      btn.click();
+    } else {
+      if (window.Status) Status.toast('参数已填充，请手动点击处理', 'success');
+    }
+  },
+
+  _setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.value = val;
+  },
+  _setSel(id, val) {
+    var el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) {
+      el.value = val;
+      if (el.value !== String(val)) { el.value = el.options[0].value; }
+    }
+  },
+  _setRadio(name, val) {
+    if (val === undefined || val === null) return;
+    var radio = document.querySelector('input[name="' + name + '"][value="' + val + '"]');
+    if (radio) {
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  },
+  _setCheck(id, val) {
+    var el = document.getElementById(id);
+    if (el && val !== undefined && val !== null) el.checked = Boolean(val);
   },
 
   async _deleteJob(jobId, assetId) {
@@ -493,8 +764,21 @@ const HistoryModule = {
       '确定要删除这条处理记录吗？关联的结果文件也将被删除，此操作不可撤销。'
     );
     if (!ok) return;
+
+    if (this._localMode) {
+      try {
+        await this._deleteLocalJob(jobId);
+        if (assetId) await this._deleteLocalAsset(assetId);
+        if (window.Status) Status.toast('已删除', 'success');
+        await this._refresh();
+      } catch (err) {
+        console.error('本地历史：删除失败', err);
+        if (window.Status) Status.toast('删除失败', 'error');
+      }
+      return;
+    }
+
     try {
-      // 如果有结果文件 → 先删 Storage 文件，再删 asset 记录
       if (assetId) {
         try {
           const asset = await this._services.asset.getAssetById(assetId);
@@ -504,7 +788,6 @@ const HistoryModule = {
           console.warn('历史记录：清理结果文件/素材失败（可能已被删除）', err);
         }
       }
-      // 删除任务记录
       await this._services.job.deleteJob(jobId);
       if (window.Status) Status.toast('已删除', 'success');
       await this._refresh();
