@@ -1,4 +1,4 @@
-// 素材服务：写入结果素材元数据、按 id 取素材（用于生成签名 URL）。
+// 素材服务：写入素材元数据、按 id / owner / project 查询素材（用于生成签名 URL、素材库列表）。
 // createAssetService(client) 接收 Supabase client（或测试用 fake）。
 
 (function (root, factory) {
@@ -12,6 +12,25 @@
     root.AssetService = api;
   }
 })(typeof window !== 'undefined' ? window : globalThis, function () {
+  const LIST_COLUMNS =
+    'id,project_id,owner_id,kind,bucket,storage_path,original_filename,mime_type,size_bytes,duration_seconds,created_at';
+
+  function mapRow(row) {
+    return {
+      id: row.id,
+      project_id: row.project_id,
+      owner_id: row.owner_id,
+      kind: row.kind,
+      bucket: row.bucket,
+      storage_path: row.storage_path,
+      original_filename: row.original_filename,
+      mime_type: row.mime_type,
+      size_bytes: row.size_bytes,
+      duration_seconds: row.duration_seconds,
+      created_at: row.created_at,
+    };
+  }
+
   function createAssetService(client) {
     if (!client || typeof client.from !== 'function') {
       throw new Error('Supabase client 不可用，无法初始化 assetService');
@@ -61,30 +80,34 @@
       if (error) throw error;
     }
 
-    async function listAssetsByOwner(ownerId, limit) {
+    async function listProjectAssets(projectId, limit) {
       const { data, error } = await client
         .from('media_assets')
-        .select('id,owner_id,kind,bucket,storage_path,original_filename,mime_type,size_bytes,created_at')
-        .eq('owner_id', ownerId)
+        .select(LIST_COLUMNS)
+        .eq('project_id', projectId)
         .order('created_at', { ascending: false })
         .limit(limit || 100);
       if (error) throw error;
-      return (data || []).map(function (row) {
-        return {
-          id: row.id,
-          owner_id: row.owner_id,
-          kind: row.kind,
-          bucket: row.bucket,
-          storage_path: row.storage_path,
-          original_filename: row.original_filename,
-          mime_type: row.mime_type,
-          size_bytes: row.size_bytes,
-          created_at: row.created_at,
-        };
-      });
+      return (data || []).map(mapRow);
     }
 
-    return { insertResultAsset, getAssetById, deleteAsset, listAssetsByOwner };
+    // options: { kind, limit }。素材库用 kind:'source_video' 只取用户上传的源视频。
+    async function listAssetsByOwner(ownerId, options) {
+      const opts = options || {};
+      let query = client
+        .from('media_assets')
+        .select(LIST_COLUMNS)
+        .eq('owner_id', ownerId);
+      if (opts.kind) query = query.eq('kind', opts.kind);
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(opts.limit || 100);
+      if (error) throw error;
+      return (data || []).map(mapRow);
+    }
+
+    return { insertResultAsset, getAssetById, deleteAsset, listProjectAssets, listAssetsByOwner };
+  }
 
   return { createAssetService };
 });
