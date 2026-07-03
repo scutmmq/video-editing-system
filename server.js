@@ -65,7 +65,29 @@ const server = http.createServer((req, res) => {
   });
 });
 
+// 优雅的错误处理，避免双击 exe 时闪退看不到错误信息
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`错误：端口 ${PORT} 已被占用，请先关闭占用该端口的程序后重试。`);
+  } else {
+    console.error('服务器启动失败：', err.message);
+  }
+  console.error('按任意键退出...');
+  // pkg 环境下 stdin 可能不是 TTY，用等待按键 + 超时的兜底方案
+  try {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on('data', () => process.exit(1));
+  } catch (_) {
+    // 降级：等待 30 秒后自动退出，确保用户有时间看到错误信息
+    setTimeout(() => process.exit(1), 30000);
+  }
+});
+
 server.listen(PORT, HOST, () => {
-  console.log(`服务器已启动：http://${HOST}:${PORT}`);
+  const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+  console.log(`服务器已启动，请在浏览器中打开：http://${displayHost}:${PORT}`);
+  console.log('（注意：0.0.0.0 是服务绑定地址，浏览器请用 localhost 访问）');
   console.log('FFmpeg.wasm 从本地 node_modules 加载');
+  console.log('按 Ctrl+C 可停止服务器');
 });
