@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
-    "build": "npm run build:exe:win && npm run build:exe:linux && npm run build:exe:mac",
-    "build:exe:linux": "npx @yao-pkg/pkg . --targets node20-linux-x64 --output dist/video-editing-system-linux --no-bytecode --public --public-packages \"*\"",
-    "build:exe:win": "npx @yao-pkg/pkg . --targets node20-win-x64 --output dist/video-editing-system-win.exe --no-bytecode --public --public-packages \"*\"",
-    "build:exe:mac": "npx @yao-pkg/pkg . --targets node20-macos-x64 --output dist/video-editing-system-macos --no-bytecode --public --public-packages \"*\"",
+    "build": "npm run build:exe:win && npm run build:exe:linux && npm run build:exe:mac && npm run build:exe:mac-arm64",
+    "build:exe:linux": "npx @yao-pkg/pkg@6.6.0 . --targets node20-linux-x64 --output dist/video-editing-system-linux --no-bytecode --public --public-packages \"*\"",
+    "build:exe:win": "npx @yao-pkg/pkg@6.6.0 . --targets node20-win-x64 --output dist/video-editing-system-win.exe --no-bytecode --public --public-packages \"*\"",
+    "build:exe:mac": "npx @yao-pkg/pkg@6.6.0 . --targets node20-macos-x64 --output dist/video-editing-system-macos --no-bytecode --public --public-packages \"*\"",
+    "build:exe:mac-arm64": "npx @yao-pkg/pkg@6.6.0 . --targets node20-macos-arm64 --output dist/video-editing-system-macos-arm64 --no-bytecode --public --public-packages \"*\"",
     "build:webdir": "node scripts/build-webdir.js",
     "cap:sync": "node scripts/build-webdir.js && npx cap sync",
     "build:apk": "scripts\\build-apk.bat"
