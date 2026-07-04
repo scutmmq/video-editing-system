@@ -1,5 +1,45 @@
 // 视频上传模块
 
+function analyzeVideoRisk(meta) {
+  const m = meta || {};
+  const width = Number(m.width) || 0;
+  const height = Number(m.height) || 0;
+  const duration = Number(m.duration) || 0;
+  const reasons = [];
+
+  if (width >= 3840 || height >= 2160) {
+    reasons.push('ultra_high_resolution');
+  } else if (width >= 2560 || height >= 1440) {
+    reasons.push('high_resolution');
+  }
+
+  if (duration >= 1800) {
+    reasons.push('very_long_duration');
+  } else if (duration >= 600) {
+    reasons.push('long_duration');
+  }
+
+  if (reasons.length === 0) return null;
+
+  const parts = [];
+  if (reasons.includes('ultra_high_resolution')) {
+    parts.push('4K/超高分辨率');
+  } else if (reasons.includes('high_resolution')) {
+    parts.push('高分辨率');
+  }
+  if (reasons.includes('very_long_duration')) {
+    parts.push('超长时长');
+  } else if (reasons.includes('long_duration')) {
+    parts.push('长时长');
+  }
+
+  return {
+    level: 'warning',
+    reasons,
+    message: '检测到' + parts.join('、') + '视频，浏览器端处理可能较慢，请耐心等待。'
+  };
+}
+
 const Upload = {
   _fileInput: null,
   _uploadArea: null,
@@ -90,6 +130,58 @@ const Upload = {
     document.dispatchEvent(new CustomEvent('video-uploaded', {
       detail: { file, url: this._objectURL }
     }));
+
+    this._warnForVideoMetadata(this._objectURL);
+  },
+
+  _warnForVideoMetadata(url) {
+    this._readVideoMetadata(url)
+      .then((meta) => {
+        if (url !== this._objectURL) return;
+        const risk = analyzeVideoRisk(meta);
+        if (risk) Status.toast(risk.message, risk.level);
+      })
+      .catch((err) => {
+        console.warn('读取视频元数据失败，跳过分辨率/时长预警:', err);
+      });
+  },
+
+  _readVideoMetadata(url) {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      let done = false;
+      let timer = null;
+
+      function cleanup() {
+        if (timer) clearTimeout(timer);
+        video.removeAttribute('src');
+        video.load();
+      }
+
+      function finish(fn, value) {
+        if (done) return;
+        done = true;
+        cleanup();
+        fn(value);
+      }
+
+      video.preload = 'metadata';
+      video.muted = true;
+      video.onloadedmetadata = () => {
+        finish(resolve, {
+          width: video.videoWidth,
+          height: video.videoHeight,
+          duration: Number.isFinite(video.duration) ? video.duration : 0
+        });
+      };
+      video.onerror = () => {
+        finish(reject, new Error('metadata load failed'));
+      };
+      timer = setTimeout(() => {
+        finish(reject, new Error('metadata load timeout'));
+      }, 5000);
+      video.src = url;
+    });
   },
 
   reset() {
@@ -131,3 +223,9 @@ const Upload = {
     });
   }
 };
+
+if (typeof module === 'object' && module.exports) {
+  module.exports = {
+    analyzeVideoRisk
+  };
+}

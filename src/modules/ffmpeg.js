@@ -146,3 +146,10 @@ class FFmpegService {
 }
 
 const ffmpegService = new FFmpegService();
+
+if (typeof module === 'object' && module.exports) {
+  module.exports = {
+    FFmpegService,
+    ffmpegService
+  };
+}

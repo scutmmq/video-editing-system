@@ -4,6 +4,7 @@ var App = {
   _currentResult: null,
   _resultType: null,
   _downloadFilename: null,
+  _defaultedTabs: {},
 
   async init() {
     Status.init();
@@ -46,6 +47,9 @@ var App = {
 
     this._initViewTabs();
     this._initSidebar();
+    if (typeof ToolDefaults !== 'undefined' && ToolDefaults.init) {
+      ToolDefaults.init();
+    }
     this._initDownload();
     this._initCancel();
     this._initContinue();
@@ -70,6 +74,7 @@ var App = {
   },
 
   _initSidebar: function () {
+    var self = this;
     var tabs = document.querySelectorAll('.tab');
     var titles = {
       trim: '视频裁剪',
@@ -115,6 +120,7 @@ var App = {
         var subEl = document.getElementById('panelSubtitle');
         if (titleEl) titleEl.textContent = titles[tab.dataset.tab] || '';
         if (subEl) subEl.textContent = subtitles[tab.dataset.tab] || '';
+        self._syncToolDefaults(tab.dataset.tab);
 
         // GSAP 平滑过渡：新面板淡入 + 标题微动
         if (panel && typeof gsap !== 'undefined') {
@@ -137,6 +143,21 @@ var App = {
         }
       });
     });
+  },
+
+  _syncToolDefaults: function (tabName) {
+    if (typeof ToolDefaults === 'undefined') return;
+    if (!this._defaultedTabs) this._defaultedTabs = {};
+
+    if (!this._defaultedTabs[tabName] && ToolDefaults.applyToolDefaultToDocument) {
+      ToolDefaults.applyToolDefaultToDocument(tabName, document);
+      this._defaultedTabs[tabName] = true;
+      return;
+    }
+
+    if (ToolDefaults.syncToolPreview) {
+      ToolDefaults.syncToolPreview(tabName, document);
+    }
   },
 
   _initViewTabs: function () {
