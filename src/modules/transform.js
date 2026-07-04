@@ -82,10 +82,127 @@
     return null;
   }
 
+  function buildPreviewState(params) {
+    const p = params || {};
+    const rotate = String(p.rotate || '0');
+    const fit = (p.fit === '9:16' || p.fit === '16:9') ? p.fit : 'none';
+    const transformParts = [];
+    const labels = [];
+    let videoMaxHeight = '';
+    let containerMaxWidth = '';
+
+    if (rotate !== '0' && ROTATE_VF[rotate] != null) {
+      transformParts.push('rotate(' + rotate + 'deg)');
+      labels.push('旋转 ' + rotate + '°');
+    }
+
+    let scaleX = p.hflip ? -1 : 1;
+    let scaleY = p.vflip ? -1 : 1;
+    if (p.hflip) labels.push('水平翻转');
+    if (p.vflip) labels.push('垂直翻转');
+
+    if (p.scale === '75') {
+      scaleX *= 0.75;
+      scaleY *= 0.75;
+      labels.push('缩放 75%');
+    } else if (p.scale === '50') {
+      scaleX *= 0.5;
+      scaleY *= 0.5;
+      labels.push('缩放 50%');
+    } else if (p.scale === '720' || p.scale === '480') {
+      videoMaxHeight = p.scale === '720' ? 'min(52vh, 360px)' : 'min(42vh, 260px)';
+      containerMaxWidth = p.scale === '720' ? 'min(100%, 315px)' : 'min(100%, 235px)';
+      labels.push('输出高度 ' + p.scale + 'p');
+    }
+
+    if (scaleX !== 1 || scaleY !== 1) {
+      transformParts.push('scale(' + scaleX + ', ' + scaleY + ')');
+    }
+
+    if (fit !== 'none') {
+      labels.push('适配 ' + fit);
+    }
+
+    return {
+      fit,
+      videoTransform: transformParts.join(' '),
+      videoMaxHeight,
+      containerMaxWidth,
+      text: labels.length ? '画面预览：' + labels.join(' / ') : '画面预览：原始画面'
+    };
+  }
+
+  function readParamsFromDocument(doc) {
+    return {
+      rotate: doc.getElementById('tfRotate').value,
+      scale: doc.getElementById('tfScale').value,
+      fit: doc.getElementById('tfFit').value,
+      hflip: doc.getElementById('tfHflip').checked,
+      vflip: doc.getElementById('tfVflip').checked,
+    };
+  }
+
+  function syncPreview(doc) {
+    const d = doc || document;
+    const video = d.getElementById('videoPlayer');
+    const container = d.getElementById('videoContainer');
+    const stateEl = d.getElementById('presetPreviewState');
+    if (!video || !container) return;
+
+    const state = buildPreviewState(readParamsFromDocument(d));
+    video.style.transform = state.videoTransform;
+    video.style.transformOrigin = 'center center';
+    video.style.maxWidth = '';
+    video.style.maxHeight = state.videoMaxHeight;
+    container.style.maxWidth = state.containerMaxWidth || '';
+    container.dataset.transformFit = state.fit;
+    delete container.dataset.presetPreview;
+    delete container.dataset.toolPreview;
+
+    if (stateEl) {
+      stateEl.hidden = false;
+      stateEl.textContent = state.text;
+    }
+
+  }
+
+  function clearPreview(doc) {
+    const d = doc || document;
+    const video = d.getElementById('videoPlayer');
+    const container = d.getElementById('videoContainer');
+    const stateEl = d.getElementById('presetPreviewState');
+
+    if (video) {
+      video.style.transform = '';
+      video.style.transformOrigin = '';
+      video.style.maxWidth = '';
+      video.style.maxHeight = '';
+    }
+
+    if (container) {
+      delete container.dataset.transformFit;
+      delete container.dataset.presetPreview;
+      delete container.dataset.toolPreview;
+      container.style.maxWidth = '';
+    }
+
+    if (stateEl) {
+      stateEl.hidden = true;
+      stateEl.textContent = '';
+    }
+  }
+
   function init() {
     const btn = document.getElementById('transformBtn');
     if (!btn) return;
     btn.addEventListener('click', _handleTransform);
+
+    ['tfRotate', 'tfScale', 'tfFit', 'tfHflip', 'tfVflip'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', function () { syncPreview(document); });
+      el.addEventListener('change', function () { syncPreview(document); });
+    });
   }
 
   function readParams() {
@@ -148,6 +265,9 @@
     buildVideoFilter,
     buildScaleFilter,
     buildFitFilter,
+    buildPreviewState,
+    syncPreview,
+    clearPreview,
     validate,
     init,
   };

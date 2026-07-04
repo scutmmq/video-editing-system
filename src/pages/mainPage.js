@@ -133,12 +133,41 @@
       </div>
     </section>
 
+    <section class="preset-strip" aria-labelledby="presetTitle">
+      <div class="preset-strip-header">
+        <div>
+          <h2 id="presetTitle">处理预设</h2>
+          <p>选择常用场景后自动切换工具并填入默认参数。</p>
+        </div>
+      </div>
+      <div class="preset-actions" role="list">
+        <button class="preset-btn" type="button" data-tool-default="transform" role="listitem" aria-pressed="false">
+          <span class="preset-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="2" width="8" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          </span>
+          <span><strong>竖屏短视频</strong><small>适配 9:16 画面</small></span>
+        </button>
+        <button class="preset-btn" type="button" data-tool-default="transcode" role="listitem" aria-pressed="false">
+          <span class="preset-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          </span>
+          <span><strong>压缩分享版</strong><small>MP4 · 720p · 中等</small></span>
+        </button>
+        <button class="preset-btn" type="button" data-tool-default="gif" role="listitem" aria-pressed="false">
+          <span class="preset-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9h3"/><path d="M8 12h2"/><path d="M14 9h2.5a1.5 1.5 0 0 1 0 3H14v3"/><path d="M14 12h2"/></svg>
+          </span>
+          <span><strong>快速 GIF</strong><small>480px · 10 fps</small></span>
+        </button>
+      </div>
+    </section>
+
     <!-- 视频预览 -->
     <section class="preview-section" id="previewSection" style="display:none">
       <div class="section-header">
         <h2>视频预览</h2>
       </div>
-      <div class="video-container">
+      <div class="video-container" id="videoContainer">
         <video id="videoPlayer" controls crossorigin="anonymous"></video>
       </div>
       <div class="preview-controls">
@@ -154,6 +183,7 @@
           <button class="btn btn-sm btn-outline" id="setEndBtn">设为裁剪结束</button>
         </div>
       </div>
+      <div class="preset-preview-state" id="presetPreviewState" hidden></div>
     </section>
 
     <!-- 工具面板区 -->
