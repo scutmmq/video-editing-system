@@ -21,6 +21,9 @@ var App = {
     TranscodeModule.init();
     SpeedModule.init();
     AudioAdjustModule.init();
+    AudioMixModule.init();
+    ConcatModule.init();
+    SubtitleModule.init();
     try {
       if (typeof HistoryModule !== 'undefined' && HistoryModule.init) {
         await HistoryModule.init().catch(function (err) {
@@ -86,7 +89,10 @@ var App = {
       transform: '画面变换',
       transcode: '压缩转码',
       speed: '播放速度',
-      audioadj: '音频调整'
+      audioadj: '音频调整',
+      audiomix: '音频处理',
+      concat: '多段拼接',
+      subtitle: '字幕烧录'
     };
     var subtitles = {
       trim: '从视频中截取一段你需要的片段，保留你想要的部分。',
@@ -98,7 +104,10 @@ var App = {
       transform: '旋转、翻转、缩放画面，或适配横屏 / 竖屏比例。',
       transcode: '转换输出格式与分辨率，并按质量等级压缩视频体积。',
       speed: '加速或减速播放，也可将短视频整段倒放。',
-      audioadj: '静音、调整音量，或为音频添加淡入淡出效果。'
+      audioadj: '静音、调整音量，或为音频添加淡入淡出效果。',
+      audiomix: '混音、替换、或添加背景音乐到视频中。',
+      concat: '添加多个裁剪片段，合并为一个完整的视频文件。',
+      subtitle: '将 SRT 或 VTT 字幕文件烧录到视频画面中。'
     };
 
     tabs.forEach(function (tab) {

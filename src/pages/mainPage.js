@@ -86,6 +86,21 @@
         <span class="sidebar-item-label">音频调整</span>
         <span class="sidebar-item-desc">音量 / 淡变</span>
       </button>
+      <button class="sidebar-item tab" data-tab="audiomix">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M19 9l2 2-2 2"/></svg>
+        <span class="sidebar-item-label">音频处理</span>
+        <span class="sidebar-item-desc">替换 / 混音</span>
+      </button>
+      <button class="sidebar-item tab" data-tab="concat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+        <span class="sidebar-item-label">多段拼接</span>
+        <span class="sidebar-item-desc">裁剪合并</span>
+      </button>
+      <button class="sidebar-item tab" data-tab="subtitle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="10" x2="10" y2="10"/><line x1="6" y1="14" x2="14" y2="14"/><line x1="14" y1="10" x2="18" y2="10"/><line x1="16" y1="14" x2="18" y2="14"/></svg>
+        <span class="sidebar-item-label">字幕烧录</span>
+        <span class="sidebar-item-desc">SRT / VTT</span>
+      </button>
     </nav>
   </aside>
 
@@ -278,20 +293,54 @@
 
       <div class="tab-panel" id="panel-watermark">
         <div class="form-row">
-          <div class="form-group">
-            <label for="wmText">水印文字</label>
-            <input type="text" id="wmText" class="form-input" placeholder="请输入水印文字" maxlength="50">
+          <div class="form-group" style="display:flex;gap:16px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="wmMode" value="text" checked> 文字水印</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="wmMode" value="image"> 图片水印/Logo</label>
           </div>
-          <div class="form-group">
-            <label for="wmFontSize">字体大小（px）</label>
-            <input type="number" id="wmFontSize" class="form-input" value="24" min="8" max="72">
+        </div>
+        <div id="wmTextSection">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="wmText">水印文字</label>
+              <input type="text" id="wmText" class="form-input" placeholder="请输入水印文字" maxlength="50">
+            </div>
+            <div class="form-group">
+              <label for="wmFontSize">字体大小（px）</label>
+              <input type="number" id="wmFontSize" class="form-input" value="24" min="8" max="72">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="wmColor">文字颜色</label>
+              <input type="color" id="wmColor" class="form-input color-input" value="#ffffff">
+            </div>
+          </div>
+        </div>
+        <div id="wmImageSection" style="display:none;">
+          <div class="form-row">
+            <div class="form-group">
+              <label>上传水印图片（PNG / JPG）</label>
+              <input type="file" id="wmImageInput" accept="image/png,image/jpeg,image/webp,image/gif" class="form-input" style="padding:8px;">
+              <div id="wmImagePreview" style="margin-top:8px;min-height:30px;"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="wmImageScale">缩放比例（% 视频宽度）：<span id="wmScaleValue">20%</span></label>
+              <input type="range" id="wmImageScale" class="form-input" min="5" max="50" value="20" style="padding:0;height:6px;">
+            </div>
+            <div class="form-group">
+              <label for="wmImageOpacity">不透明度</label>
+              <select id="wmImageOpacity" class="form-input">
+                <option value="1.0">100%</option>
+                <option value="0.8">80%</option>
+                <option value="0.6">60%</option>
+                <option value="0.4">40%</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label for="wmColor">文字颜色</label>
-            <input type="color" id="wmColor" class="form-input color-input" value="#ffffff">
-          </div>
           <div class="form-group">
             <label for="wmPosition">显示位置</label>
             <select id="wmPosition" class="form-input">
@@ -450,7 +499,83 @@
       </div>
     </section>
 
-    <!-- 状态栏 -->
+    
+      <div class="tab-panel" id="panel-audiomix">
+        <div class="form-row">
+          <div class="form-group" style="display:flex;gap:16px;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="amMode" value="mix" checked> 混音</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="amMode" value="replace"> 替换</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="amMode" value="background"> 背景音乐</label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="amMode" value="extract"> 移除音轨</label>
+          </div>
+        </div>
+        <div id="amUploadSection">
+          <div class="form-row">
+            <div class="form-group">
+              <label>上传音频文件（MP3 / WAV / M4A / OGG）</label>
+              <input type="file" id="amAudioInput" accept="audio/*" class="form-input" style="padding:8px;">
+              <div id="amAudioInfo" style="margin-top:4px;font-size:13px;color:var(--text-secondary);">选择音频文件与视频音频混合</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="amVolume">音量调整（dB，-20 ~ +20）</label>
+              <input type="number" id="amVolume" class="form-input" value="0" min="-20" max="20" step="1">
+            </div>
+          </div>
+        </div>
+        <p class="tab-panel-hint">混音 = 视频原音 + 上传音频混合；替换 = 上传音频替换原音轨；背景音乐 = 原音压低后叠加音乐；移除音轨 = 直接静音。</p>
+        <button class="btn btn-primary btn-full" id="audioMixBtn">处理音频</button>
+      </div>
+
+      <div class="tab-panel" id="panel-concat">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="concatStart">裁剪开始时间（秒）</label>
+            <input type="number" id="concatStart" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label for="concatEnd">裁剪结束时间（秒）</label>
+            <input type="number" id="concatEnd" class="form-input" min="0" step="0.1" placeholder="0.0">
+          </div>
+        </div>
+        <div class="form-row" style="gap:8px;">
+          <button class="btn btn-outline" id="concatAddBtn">+ 添加段</button>
+          <button class="btn btn-ghost btn-delete" id="concatClearBtn">清空全部</button>
+        </div>
+        <div class="concat-list" id="concatSegments">
+          <div class="concat-empty">尚未添加裁剪段，请填写时间点并点击「添加段」</div>
+        </div>
+        <p class="tab-panel-hint">添加至少 2 个片段后点击「拼接视频」合并为一个文件。</p>
+        <button class="btn btn-primary btn-full" id="concatBtn">拼接视频</button>
+      </div>
+
+      <div class="tab-panel" id="panel-subtitle">
+        <div class="form-row">
+          <div class="form-group">
+            <label>上传字幕文件（SRT / VTT）</label>
+            <input type="file" id="subFileInput" accept=".srt,.vtt,text/plain" class="form-input" style="padding:8px;">
+            <div id="subFileInfo" style="margin-top:4px;font-size:13px;color:var(--text-secondary);"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="subPosition">字幕位置</label>
+            <select id="subPosition" class="form-input">
+              <option value="bottom" selected>底部（默认）</option>
+              <option value="middle">居中</option>
+              <option value="top">顶部</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="subFontSize">字体大小（px）</label>
+            <input type="number" id="subFontSize" class="form-input" value="24" min="12" max="72">
+          </div>
+        </div>
+        <p class="tab-panel-hint">将 SRT 或 VTT 字幕文件烧录到视频画面中，支持调整位置与字体大小。</p>
+        <button class="btn btn-primary btn-full" id="subtitleBtn">烧录字幕</button>
+      </div>
+<!-- 状态栏 -->
     <div class="status-bar" id="statusBar">
       <span class="status-dot" id="statusDot"></span>
       <span id="statusText">请先上传视频文件</span>

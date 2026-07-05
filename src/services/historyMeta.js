@@ -24,6 +24,10 @@
     transcode: 'transcoded_video',
     speed: 'speed_video',
     audio_adjust: 'audio_adjusted_video',
+    image_watermark: 'watermarked_video',
+    audio_mix: 'audio_mixed_video',
+    concat: 'concatenated_video',
+    subtitle_burn: 'subtitled_video',
   };
 
   // 非视频结果放 media-derived（桶只允许 gif/png/音频），其余视频放 media-results
@@ -82,7 +86,20 @@
         if (Number(p.fadeOut)) bits.push(`淡出${p.fadeOut}s`);
         return bits.join(' / ') || '音频调整';
       }
-      default:
+      
+      case 'image_watermark':
+        return '“' + (p.filename || '') + '” @ ' + (p.position || '');
+      case 'audio_mix': {
+        const mode = p.mode || 'mix';
+        if (mode === 'replace') return '替换音频';
+        if (mode === 'background') return '背景音乐';
+        return '混音';
+      }
+      case 'concat':
+        return (p.segments ? p.segments + ' 段' : '') + ' 拼接';
+      case 'subtitle_burn':
+        return (p.filename || '') + ' 字幕烧录';
+default:
         try {
           return JSON.stringify(p);
         } catch (_err) {
