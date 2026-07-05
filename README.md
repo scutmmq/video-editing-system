@@ -12,6 +12,16 @@
 
 登录后的处理历史和素材库用于保存结果文件与任务元数据，方便回看、下载和继续编辑。这些能力是持久化增强，不改变“原始输入文件默认留在本地浏览器”的设计边界。
 
+## 团队成员与 GitHub 对应关系
+
+| 姓名 | GitHub / git 作者 | 主要分工依据 |
+| --- | --- | --- |
+| 莫明钦 | [scutmmq](https://github.com/scutmmq)、`momingqin`、`Mo Mingqin` | 项目初始化与总体架构、Supabase 登录/数据库/RLS、核心功能扩展、Android APK 构建、历史/素材库、README/TODO/技术文档、版本发布与修复 |
+| 黄星曌 | [Rechel-star](https://github.com/Rechel-star) | 页面与样式调整、历史记录、预览模块、素材/资产相关模块、主页面与登录样式重构 |
+| 黄奕铭 | [Ch111rO](https://github.com/Ch111rO)，git 作者显示为 `huangyiming` | 处理预设、变换预览联动、关键链路测试覆盖、FFmpeg service 测试、高分辨率/长时长上传预警 |
+| 黄达杨 | [h7720592-svg](https://github.com/h7720592-svg)，早期 git 作者显示为 `huangyang` | 基础视频处理系统雏形、水印修复、COOP/COEP 与 server 改进、start.bat、本地服务与 Win/Linux/Mac 可执行文件构建脚本 |
+| 秦明豪 | [quiz-cloud](https://github.com/quiz-cloud) | 音频混合、多段拼接、字幕烧录、水印模块增强、历史元数据和历史测试、主页面与样式补充、TODO/任务整理 |
+
 ## 功能
 
 | 模块 | 说明 |
