@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const HistoryMeta = require('../src/services/historyMeta.js');
 
@@ -9,6 +11,10 @@ test('resultKindForOperation maps every operation', () => {
   assert.equal(HistoryMeta.resultKindForOperation('transcode'), 'transcoded_video');
   assert.equal(HistoryMeta.resultKindForOperation('speed'), 'speed_video');
   assert.equal(HistoryMeta.resultKindForOperation('audio_adjust'), 'audio_adjusted_video');
+  assert.equal(HistoryMeta.resultKindForOperation('image_watermark'), 'watermarked_video');
+  assert.equal(HistoryMeta.resultKindForOperation('audio_mix'), 'audio_mixed_video');
+  assert.equal(HistoryMeta.resultKindForOperation('concat'), 'concatenated_video');
+  assert.equal(HistoryMeta.resultKindForOperation('subtitle_burn'), 'subtitled_video');
   assert.equal(HistoryMeta.resultKindForOperation('unknown'), null);
 });
 
@@ -18,6 +24,23 @@ test('bucketForKind routes derived kinds to media-derived', () => {
   assert.equal(HistoryMeta.bucketForKind('cover_image'), 'media-derived');
   assert.equal(HistoryMeta.bucketForKind('trimmed_video'), 'media-results');
   assert.equal(HistoryMeta.bucketForKind('transcoded_video'), 'media-results');
+  assert.equal(HistoryMeta.bucketForKind('subtitled_video'), 'media-results');
+});
+
+test('Supabase migrations allow every history operation and result kind', () => {
+  const migrationsDir = path.join(__dirname, '..', 'supabase', 'migrations');
+  const migrationSql = fs.readdirSync(migrationsDir)
+    .filter((name) => name.endsWith('.sql'))
+    .map((name) => fs.readFileSync(path.join(migrationsDir, name), 'utf8'))
+    .join('\n');
+
+  for (const operation of Object.keys(HistoryMeta.OPERATION_KIND)) {
+    assert.match(migrationSql, new RegExp("'" + operation + "'"), `missing operation ${operation}`);
+  }
+
+  for (const kind of new Set(Object.values(HistoryMeta.OPERATION_KIND))) {
+    assert.match(migrationSql, new RegExp("'" + kind + "'"), `missing kind ${kind}`);
+  }
 });
 
 test('buildStoragePath puts user id first (RLS requirement)', () => {
